@@ -1,0 +1,98 @@
+#!/usr/bin/digred
+
+
+/*
+Well-known keywords that may be used by the digred application's
+internal processing begin with "_digred_".
+
+Any keywords beginning with "_APP_" are reserved for use by
+application identified by APP
+
+The ony other keywords are the datatypes
+*/
+
+
+_digred_common # properties common to all vertices and edges
+    /*
+    these properties can effectively embody all necessary attributes
+    to identify almost all entities
+    */
+
+    _digred_pk:UUID
+    _digred_version:INTEGER /* >= 1, incremented upon modification */
+
+    _digred_created:DATETIME
+    _digred_modified:DATETIME /* last modified timestamp */
+
+    _digred_name:STRING /* short name for the entity;
+            used to show entity in displayed lists, which will sort by this */
+
+    category:STRING /* optional enum-style category; used, for example, to group entities by */
+    description:STRING /* complete long description of the entity */
+    notes:TEXT /* any unstructured notes regarding the entity */
+
+
+
+
+
+
+# --------------------
+# PLACES
+
+Place
+    /* a domain-defined place */
+    pluscode:STRING /* very rough location */
+
+PlaceChange # indicates some change in a place or set of places
+    when /* effective date of the change */ :DATE
+
+# A PlaceChange consists of any numbers of transfers and transformations
+Transfer
+Transfer DURING PlaceChange
+Transfer OF Place
+Transfer FROM Place
+Transfer TO Place
+
+Transform
+Transform DURING PlaceChange
+Transform FROM Place
+Transform TO Place
+
+
+
+# --------------------
+# SOURCES
+
+Citation
+Citation SITES Citation
+
+
+
+# --------------------
+# EXTRACTIONS
+
+Event
+    when:DATE /* year-month-day, using the calendar in effect at the given place and time */
+              /* TODO implement storing Calendar, and implement approximate/unknown dates */
+    certainty /* of date */ :INTEGER
+
+
+Event WAS_AT Place
+    certainty:INTEGER
+
+Persona
+Persona SITES Citation
+Persona HAD_ROLE_IN Event
+    certainty:INTEGER
+
+
+
+# --------------------
+# CONCLUSIONS
+
+Sameness
+Sameness IS Persona
+    certainty:INTEGER
+
+Investigation
+Sameness IS_ASSERTED_BY Investigation
