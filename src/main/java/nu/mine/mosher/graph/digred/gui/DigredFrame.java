@@ -1,5 +1,6 @@
 package nu.mine.mosher.graph.digred.gui;
 
+import nu.mine.mosher.graph.digred.Digred;
 import nu.mine.mosher.graph.digred.datastore.DataStore;
 import nu.mine.mosher.graph.digred.schema.*;
 import org.antlr.v4.runtime.*;
@@ -16,29 +17,28 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import static java.awt.event.KeyEvent.*;
 
 class DigredFrame extends Frame {
+    private static final Logger LOG = LoggerFactory.getLogger(DigredFrame.class);
     private static final Component CENTER_ON_SCREEN = null;
 
-    private static final Logger LOG = LoggerFactory.getLogger(DigredFrame.class);
-
     private final AtomicBoolean shutdownInProgress = new AtomicBoolean();
-
-
-
+    private final DataStore datastore = new DataStore();
     private DigredMainPanel panelMain;
-
     private MenuItem itemOpen;
     private MenuItem itemClose;
 
-    private final DataStore datastore = new DataStore();
 
 
-    public DigredFrame() {
+    public static DigredFrame create() {
+        final DigredFrame frame = new DigredFrame();
+        frame.init();
+        return frame;
+    }
+
+    private DigredFrame() {
         super("DiGrEd");
     }
 
-
-
-    public void init() {
+    private void init() {
         setSize(1920,1080);
         setLocationRelativeTo(CENTER_ON_SCREEN);
 
@@ -128,6 +128,7 @@ class DigredFrame extends Frame {
         return this.itemOpen;
     }
 
+    // User command: File/Open
     private void fileOpen(final ActionEvent e) {
         try {
             tryFileOpen();
@@ -154,19 +155,22 @@ class DigredFrame extends Frame {
             schema = schema.withCommonApplied();
 //            logSchema(schema);
 
-            this.panelMain = new DigredMainPanel(new DigredModel(schema), this.datastore);
+            this.panelMain = DigredMainPanel.create(new DigredModel(schema), this.datastore);
             add(this.panelMain);
-            this.panelMain.init();
-            validate();
             updateViewFromModel();
+            this.panelMain.updateViewFromModel();
+
+            validate();
         }
     }
 
     private File askOpenFile() {
         final FileDialog dialog = new FileDialog(this, "Choose a schema file");
+        dialog.setDirectory(dir().getAbsolutePath());
         dialog.setFile("*.digr");
         relocateWindow(dialog);
         dialog.setVisible(true);
+        dir(new File(dialog.getDirectory()));
 
         final File[] files = dialog.getFiles();
         if (Objects.isNull(files) || files.length <= 0) {
@@ -174,6 +178,14 @@ class DigredFrame extends Frame {
         }
 
         return files[0];
+    }
+
+    private static File dir() {
+        return new File(Digred.prefs().get("dir", "./"));
+    }
+
+    private static void dir(final File dir) {
+        Digred.prefs().put("dir", dir.getAbsolutePath());
     }
 
     private void relocateWindow(final Window window) {
@@ -188,6 +200,7 @@ class DigredFrame extends Frame {
         return this.itemClose;
     }
 
+    // User command: File/Close
     private void fileClose(final ActionEvent e) {
         if (Objects.nonNull(this.panelMain)) {
             remove(this.panelMain);
@@ -198,6 +211,7 @@ class DigredFrame extends Frame {
 
     public void updateViewFromModel() {
         this.itemClose.setEnabled(Objects.nonNull(this.panelMain));
+        this.itemOpen.setEnabled(Objects.isNull(this.panelMain));
     }
 
 
@@ -205,17 +219,16 @@ class DigredFrame extends Frame {
 
 
     private static void logSchema(final DigraphSchema schema) {
-        // TODO
-//        LOG.info("loading schema model:");
-//        if (LOG.isInfoEnabled()) {
-//            final StringWriter out = new StringWriter(1024);
-//            final BufferedWriter buf = new BufferedWriter(out);
-//            final PrintWriter pw = new PrintWriter(buf);
-//            schema.decompile(pw);
-//            pw.flush();
-//            final StringReader in = new StringReader(out.toString());
-//            final BufferedReader buf2 = new BufferedReader(in);
-//            buf2.lines().forEach(LOG::info);
-//        }
+        LOG.info("loading schema model:");
+        if (LOG.isInfoEnabled()) {
+            final StringWriter out = new StringWriter(1024);
+            final BufferedWriter buf = new BufferedWriter(out);
+            final PrintWriter pw = new PrintWriter(buf);
+            schema.decompile(pw);
+            pw.flush();
+            final StringReader in = new StringReader(out.toString());
+            final BufferedReader buf2 = new BufferedReader(in);
+            buf2.lines().forEach(LOG::info);
+        }
     }
 }

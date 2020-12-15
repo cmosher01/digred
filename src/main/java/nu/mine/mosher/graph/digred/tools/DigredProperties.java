@@ -1,11 +1,6 @@
-package nu.mine.mosher.graph.digred.aux;
+package nu.mine.mosher.graph.digred.tools;
 
 import nu.mine.mosher.graph.digred.schema.*;
-import org.neo4j.driver.Value;
-import org.neo4j.driver.internal.value.*;
-
-import java.time.*;
-import java.util.*;
 
 /**
  * TODO do we even need this class at all?

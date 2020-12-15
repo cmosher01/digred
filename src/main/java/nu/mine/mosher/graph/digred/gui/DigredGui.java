@@ -9,6 +9,11 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class DigredGui {
+    private static final Logger LOG = LoggerFactory.getLogger(DigredGui.class);
+    private final AtomicReference<Thread> events = new AtomicReference<>();
+
+
+
     public static DigredGui create() throws InvocationTargetException, InterruptedException {
         initAwtLogging();
 
@@ -20,34 +25,6 @@ public class DigredGui {
         return gui.get();
     }
 
-    private static void initAwtLogging() {
-        final LoggerContext ctx = (LoggerContext)LoggerFactory.getILoggerFactory();
-        ctx.getLogger("sun.awt").setLevel(Level.INFO);
-        ctx.getLogger("java.awt").setLevel(Level.INFO);
-    }
-
-
-
-    private final AtomicReference<Thread> events = new AtomicReference<>();
-    private final Logger LOG = LoggerFactory.getLogger(DigredGui.class);
-
-    // TODO make these 2 vars local:
-    private final DigredFrame frame = new DigredFrame();
-    private final DigredMenuBar menubar = new DigredMenuBar();
-
-    private DigredGui() {
-        LOG.info("Starting up GUI (on event thread)...");
-    }
-
-    private void init() {
-        this.events.set(Thread.currentThread());
-
-        this.frame.init();
-        this.menubar.init(this.frame);
-        this.frame.setMenuBar(this.menubar);
-        this.frame.updateViewFromModel();
-    }
-
     public void waitForEventThread() {
         try {
             this.events.get().join();
@@ -55,5 +32,26 @@ public class DigredGui {
             LOG.error("thread interrupted", e);
             Thread.currentThread().interrupt();
         }
+    }
+
+
+
+    private DigredGui() {
+        LOG.info("Starting up GUI, on thread: {}", Thread.currentThread().getName());
+    }
+
+    private void init() {
+        this.events.set(Thread.currentThread());
+
+        final DigredFrame frame = DigredFrame.create();
+        DigredMenuBar.create(frame);
+
+        frame.updateViewFromModel();
+    }
+
+    private static void initAwtLogging() {
+        final LoggerContext ctx = (LoggerContext)LoggerFactory.getILoggerFactory();
+        ctx.getLogger("sun.awt").setLevel(Level.INFO);
+        ctx.getLogger("java.awt").setLevel(Level.INFO);
     }
 }

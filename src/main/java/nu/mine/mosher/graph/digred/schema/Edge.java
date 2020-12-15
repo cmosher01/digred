@@ -1,5 +1,6 @@
 package nu.mine.mosher.graph.digred.schema;
 
+import java.io.PrintWriter;
 import java.util.*;
 
 // (tail)-[:type{props}]->(head)
@@ -39,5 +40,14 @@ implements Entity {
     @Override
     public String typename() {
         return type();
+    }
+
+    @Override
+    public void decompile(final PrintWriter out) {
+        tail.decompile(out);
+        out.print(" ");
+        out.print(typename());
+        out.print(" ");
+        head.decompile(out);
     }
 }

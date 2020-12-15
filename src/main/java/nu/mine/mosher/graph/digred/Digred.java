@@ -16,6 +16,9 @@ public class Digred {
     public static class LogConfig extends LogbackConfigurator {
     }
 
+    private static class DigredVersion extends Version {
+    }
+
     public static Preferences prefs() {
         return Preferences.userNodeForPackage(Digred.class);
     }
@@ -24,7 +27,7 @@ public class Digred {
         DigredGui gui = null;
         try {
             initLogging();
-            LOG.info("version: {}", Version.version(Digred.class.getPackage()));
+            LOG.info("version: {}", new DigredVersion().version());
             gui = DigredGui.create();
         } catch (final Throwable e) {
             logProgramTermination(e);

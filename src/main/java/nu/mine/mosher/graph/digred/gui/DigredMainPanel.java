@@ -1,91 +1,53 @@
 package nu.mine.mosher.graph.digred.gui;
 
 import nu.mine.mosher.graph.digred.datastore.DataStore;
-import nu.mine.mosher.graph.digred.schema.*;
 import org.slf4j.*;
 import org.slf4j.Logger;
 
 import java.awt.*;
-import java.util.*;
-import java.util.List;
+import java.awt.event.ActionEvent;
 
 public class DigredMainPanel extends Panel {
     private static final Logger LOG = LoggerFactory.getLogger(DigredMainPanel.class);
 
     private final DigredModel model;
     private final DataStore datastore;
-
-
-    private GridBagLayout layout;
     private DigredVertexPanel panelVertex;
-    private DigredPropsPanel panelProps; // TODO
-    private Panel panelProp;
+    private DigredPropsPanel panelProps;
 
-    public DigredMainPanel(final DigredModel model, final DataStore dataStore) {
+
+
+    public static DigredMainPanel create(final DigredModel model, final DataStore dataStore) {
+        final DigredMainPanel panel = new DigredMainPanel(model, dataStore);
+        panel.init();
+        return panel;
+    }
+
+    private DigredMainPanel(final DigredModel model, final DataStore dataStore) {
         this.model = model;
         this.datastore = dataStore;
     }
 
     public void init() {
-        this.layout = new GridBagLayout();
-        setLayout(this.layout);
-//        setBackground(Color.CYAN); // TODO
+        setLayout(new GridLayout(1,2));
+        setBackground(Color.CYAN); // TODO remove MAIN PANEL CYAN
 
-        this.panelVertex = new DigredVertexPanel(this.model, this.datastore);
-        this.panelVertex.init();
-        this.panelVertex.updateViewFromModel();
-
-        final GridBagConstraints howToLayOut = new GridBagConstraints();
-        howToLayOut.gridx = 0;
-        howToLayOut.weightx = 1.0D / 2.0D;
-        howToLayOut.gridy = 0;
-        howToLayOut.weighty = 1.0D;
-        howToLayOut.fill = GridBagConstraints.BOTH;
-        this.layout.setConstraints(this.panelVertex, howToLayOut);
-//        this.panelVertex.setBackground(Color.MAGENTA); // TODO
+        this.panelVertex = DigredVertexPanel.create(this.model, this.datastore);
+        this.panelVertex.setActionListener(this::onEntityChosen);
+        this.panelVertex.setBackground(Color.MAGENTA); // TODO remove LEFT-SIDE PANEL MAGENTA
         add(this.panelVertex);
 
-        updateViewFromModel();
+        this.panelProps = DigredPropsPanel.create(this.model, this.datastore);
+        this.panelProps.setBackground(Color.YELLOW); // TODO remove RIGHT-SIDE PANEL YELLOW
+        add(this.panelProps);
     }
 
-
     public void updateViewFromModel() {
-        final List<Prop> props;
-        if (0 <= this.model.iVertexCurr) {
-            props = this.model.schema.e().get(this.model.iVertexCurr).props();
-        } else {
-            props = Collections.emptyList();
-        }
+        this.panelVertex.updateViewFromModel();
+        this.panelProps.updateViewFromModel();
+    }
 
-        if (!props.isEmpty()) {
-            if (Objects.nonNull(this.panelProp)) {
-                remove(this.panelProp);
-            }
-            this.panelProp = new Panel();
-//            this.panelProp.setBackground(Color.YELLOW); // TODO
-            final Panel p = new Panel(new GridLayout(props.size(),2));
-
-            props.forEach(prop -> {
-                final Label labelProp = new Label(prop.key());
-                p.add(labelProp);
-                final TextField stringProp = new TextField("");
-                stringProp.setColumns(60);
-                stringProp.setEditable(false);
-                p.add(stringProp);
-            });
-            this.panelProp.add(p);
-
-            final GridBagConstraints howToLayOut = new GridBagConstraints();
-            howToLayOut.gridx = 1;
-            howToLayOut.weightx = 0.0D;
-            howToLayOut.gridy = 0;
-            howToLayOut.weighty = 1.0D;
-            howToLayOut.fill = GridBagConstraints.BOTH;
-            this.layout.setConstraints(this.panelProp, howToLayOut);
-            add(this.panelProp);
-        }
-
-
-        validate();
+    private void onEntityChosen(ActionEvent e) {
+        this.panelProps.updateViewFromModel();
     }
 }

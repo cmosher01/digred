@@ -1,5 +1,6 @@
 package nu.mine.mosher.graph.digred.schema;
 
+import java.io.PrintWriter;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -8,31 +9,17 @@ public record DigraphSchema (
 ) {
     public static final String DIGRED_COMMON = "_digred_common";
 
-//    public void decompile(final PrintWriter out) {
-//        v.forEach(x -> {
-//            out.println(x.label());
-//            x.props().forEach(p -> {
-//                out.print("    ");
-//                out.print(p.key());
-//                out.print(" : ");
-//                out.println(p.type());
-//            });
-//        });
-//        out.println();
-//        e.forEach(x -> {
-//            out.print(x.tail().label());
-//            out.print(" ");
-//            out.print(x.type());
-//            out.print(" ");
-//            out.println(x.head().label());
-//            x.props().forEach(p -> {
-//                out.print("    ");
-//                out.print(p.key());
-//                out.print(" : ");
-//                out.println(p.type());
-//            });
-//        });
-//    }
+    public void decompile(final PrintWriter out) {
+        e().forEach(entity -> {
+            entity.decompile(out);
+            out.println();
+            entity.props().forEach(p -> {
+                out.print("    ");
+                p.decompile(out);
+                out.println();
+            });
+        });
+    }
 
     public DigraphSchema withCommonApplied() {
         final var propsCommon = this.e.

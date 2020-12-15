@@ -15,7 +15,7 @@ public class DigredModel {
 
     public int iEntityCurr = -1;
     public int iEntityNext = -1;
-    public int idEntityNext = -1;
+    public int idEntityNext = -1; // TODO pre-select entity in list
 
     public String search = "";
 

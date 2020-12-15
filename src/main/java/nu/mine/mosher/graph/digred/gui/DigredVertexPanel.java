@@ -22,7 +22,15 @@ public class DigredVertexPanel extends Panel {
     private java.awt.List listboxResults;
     private Button buttonNew;
 
-    public DigredVertexPanel(final DigredModel model, final DataStore dataStore) {
+    public static DigredVertexPanel create(final DigredModel model, final DataStore dataStore) {
+        final DigredVertexPanel panel = new DigredVertexPanel(model, dataStore);
+        panel.init();
+        return panel;
+    }
+
+    private ActionListener listenerAction;
+
+    private DigredVertexPanel(final DigredModel model, final DataStore dataStore) {
         this.model = model;
         this.datastore = dataStore;
     }
@@ -61,16 +69,19 @@ public class DigredVertexPanel extends Panel {
         add(this.buttonNew);
     }
 
+    // User command: choose an entity type from drop down
     private void selectedVertex(final ItemEvent e) {
         this.model.iVertexNext = this.choiceVertex.getSelectedIndex();
         updateViewFromModel();
     }
 
+    // User command: choose an entity from the list box
     private void selectedEntity(final ActionEvent e) {
         this.model.iEntityNext = this.listboxResults.getSelectedIndex();
         updateViewFromModel();
     }
 
+    // User command: pressed "New" button to create a new entity
     private void pressedNew(final ActionEvent e) {
         final var vertex = this.model.schema.e().get(this.model.iVertexCurr);
 
@@ -80,8 +91,8 @@ public class DigredVertexPanel extends Panel {
                 switch (prop.key()) {
                     case "_digred_pk" -> cyProps.add("pk: apoc.create.uuid()");
                     case "_digred_version" -> cyProps.add("version: 1");
-                    case "_digred_created" -> cyProps.add("created: datetime.transaction()");
-                    case "_digred_modified" -> cyProps.add("modified: datetime.transaction()");
+                    case "_digred_created" -> cyProps.add("created: datetime.realtime()");
+                    case "_digred_modified" -> cyProps.add("modified: datetime.realtime()");
                 }
             });
 
@@ -96,13 +107,15 @@ public class DigredVertexPanel extends Panel {
 
             this.model.iVertexCurr = -1;
             updateViewFromModel();
+        } else {
+            // TODO: how to create a new edge?
         }
     }
 
     public void updateViewFromModel() {
         this.choiceVertex.select(this.model.iVertexNext);
         if (this.model.iVertexCurr != this.model.iVertexNext) {
-            queryEntities(this.model.schema.e().get(this.model.iVertexNext));
+            queryEntities();
             this.model.iVertexCurr = this.model.iVertexNext;
         }
 
@@ -110,16 +123,19 @@ public class DigredVertexPanel extends Panel {
             this.listboxResults.select(this.model.iEntityNext);
             this.listboxResults.makeVisible(this.model.iEntityNext);
             if (this.model.iEntityCurr != this.model.iEntityNext) {
-                queryEntity(this.model.listResults.get(this.model.iEntityNext));
+                queryEntity();
                 this.model.iEntityCurr = this.model.iEntityNext;
             }
+        } else if (this.model.iEntityNext < 0) {
+            queryEntity();
         }
 
         this.buttonNew.setEnabled(this.model.schema.e().get(this.model.iVertexCurr).vertex());
     }
 
-    private void queryEntities(final Entity vertex) {
-        System.err.println("QUERY AND DISPLAY table: "+vertex.typename());
+    // fill the list box with entities of the currently chosen entity type (with the drop down)
+    private void queryEntities() {
+        final Entity vertex = this.model.schema.e().get(this.model.iVertexNext);
         final Query query;
         if (this.model.search.isBlank()) {
             query = new Query(String.format("MATCH (n:%s) " +
@@ -154,10 +170,10 @@ public class DigredVertexPanel extends Panel {
         }
 
         this.model.iEntityCurr = -1;
-        this.model.iEntityNext = 0;
-        preSelectList();
+        this.model.iEntityNext = this.model.listResults.isEmpty() ? -1 : 0;
+        System.err.println("auto-select entity from list, at index: "+this.model.iEntityNext);
 
-        validate();
+        preSelectList();
     }
 
     private void preSelectList() {
@@ -165,7 +181,7 @@ public class DigredVertexPanel extends Panel {
     }
 
     private static String resultDisplayNameOf(final String typename, final Record r) {
-        // TODO fix display name
+        // TODO fix display name?
         final Value mod = r.get("n").asMap(Values.ofValue()).get("modified");
         final String ts = Objects.isNull(mod) ? "<null>" : TypeConstructor.DATE_TIME.covers(mod) ? mod.asZonedDateTime().toString() : ""+mod.asObject();
         return r.get("name", "unnamed "+typename) + ", " +
@@ -173,7 +189,13 @@ public class DigredVertexPanel extends Panel {
             "ID=" + r.get("id") + "";
     }
 
-    private void queryEntity(final Record r) {
-        System.err.println("QUERY AND DISPLAY object: "+r.get("id"));
+    private void queryEntity() {
+        // TODO
+        this.listenerAction.actionPerformed(
+            new ActionEvent(this, ActionEvent.ACTION_PERFORMED, "", (int)System.currentTimeMillis(), 0));
+    }
+
+    public void setActionListener(final ActionListener listener) {
+        this.listenerAction = listener;
     }
 }
