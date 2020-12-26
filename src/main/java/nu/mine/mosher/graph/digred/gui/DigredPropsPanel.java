@@ -1,121 +1,83 @@
 package nu.mine.mosher.graph.digred.gui;
 
 import nu.mine.mosher.graph.digred.datastore.DataStore;
-import nu.mine.mosher.graph.digred.schema.*;
-import org.neo4j.driver.*;
-import org.neo4j.driver.Record;
-import org.neo4j.driver.internal.types.TypeConstructor;
-import org.neo4j.driver.types.Node;
+import nu.mine.mosher.graph.digred.util.Tracer;
 import org.slf4j.*;
 import org.slf4j.Logger;
 
 import java.awt.*;
 import java.util.*;
 
-public class DigredPropsPanel extends Panel {
+public class DigredPropsPanel extends Panel implements ViewUpdater {
     private static final Logger LOG = LoggerFactory.getLogger(DigredPropsPanel.class);
 
     private final DigredModel model;
     private final DataStore datastore;
-    private Label label;
-    private Panel holderProps;
+    private final ViewUpdater updater;
+    private DigredPropsForm form;
+    private DigredLinksPanel links;
+    private Container filler;
 
-    public static DigredPropsPanel create(final DigredModel model, final DataStore datastore) {
-        final DigredPropsPanel panel = new DigredPropsPanel(model, datastore);
+    public static DigredPropsPanel create(final DigredModel model, final DataStore datastore, final ViewUpdater updater) {
+        Tracer.trace("DigredPropsPanel: create");
+        final var panel = new DigredPropsPanel(model, datastore, updater);
         panel.init();
         return panel;
     }
 
     public void init() {
-        setLayout(new GridLayout(3,1));
-        this.label = new Label();
-        this.label.setBackground(Color.GREEN); // TODO
-        add(this.label);
-
-        add(new Panel());
+        setLayout(null);
+        setBackground(DigredGui.debugLayout(Color.BLUE));
     }
 
-    public void updateViewFromModel() {
-        if (0 <= this.model.iEntityNext) {
-            final Record rec = this.model.listResults.get(this.model.iEntityNext);
+    @Override
+    public void updateViewFromModel(final DigredEntityIdent ident) {
+        Tracer.trace("DigredPropsPanel: updateViewFromModel");
+        Tracer.trace("    ident: "+ident);
+        if (Objects.nonNull(this.form)) {
+            remove(this.form);
+            this.form = null;
+        }
+        if (Objects.nonNull(this.links)) {
+            remove(this.links);
+            this.links = null;
+        }
+        if (Objects.nonNull(this.filler)) {
+            remove(this.filler);
+            this.filler = null;
+        }
+        if (ident.id().isPresent()) {
+            final var layoutManager = new GridBagLayout();
+            setLayout(layoutManager);
+            final var cns = new GridBagConstraints();
+            cns.gridx = 0;
+            cns.anchor = GridBagConstraints.NORTHWEST;
 
-            final Entity vertex = this.model.schema.e().get(this.model.iVertexNext);
-            final Query query;
-            if (vertex.vertex()) {
-                query = new Query(String.format("MATCH (n:%s) WHERE ID(n) = $id RETURN n",
-                    vertex.typename()),
-                    Map.of("id", rec.get("id").asLong()));
-            } else {
-                // TODO query for relationship
-                query = null;
+            this.form = DigredPropsForm.create(this.model, this.datastore, this.updater, ident);
+            cns.weightx = 1.0D;
+            cns.fill = GridBagConstraints.HORIZONTAL;
+            layoutManager.setConstraints(this.form, cns);
+            add(this.form);
+
+            if (ident.type().vertex()) {
+                this.links = DigredLinksPanel.create(this.model, this.datastore, this.updater, ident);
+                layoutManager.setConstraints(this.links, cns);
+                add(this.links);
             }
 
-            final Record rs;
-            try (final var session = datastore.session()) {
-                rs = session.readTransaction(tx -> tx.run(query).single());
-            }
-
-            // label (for debugging only)
-            final Node node = rs.get("n").asNode();
-            this.label.setText(vertex.typename()+" [pk="+ node.get("pk").asString()+"]");
-
-
-
-            if (Objects.nonNull(this.holderProps)) {
-                remove(this.holderProps);
-            }
-            this.holderProps = new Panel();
-            this.holderProps.setBackground(Color.ORANGE);
-            final var props = vertex.props();
-            this.holderProps.setLayout(new GridLayout(props.size(),2,5,5));
-            props.forEach(prop -> {
-                final String key = filterDigredKeyName(prop.key());
-                final Label labelProp = new Label(key);
-                this.holderProps.add(labelProp);
-                final TextField stringProp = new TextField(displayValueOf(node.get(key)));
-                stringProp.setColumns(60);
-                stringProp.setEditable(false);
-                this.holderProps.add(stringProp);
-            });
-            add(this.holderProps);
-        } else {
-            this.label.setText("[no entity]");
-            if (Objects.nonNull(this.holderProps)) {
-                remove(this.holderProps);
-                this.holderProps = null;
-            }
+            cns.weightx = 1.0D;
+            cns.weighty = 1.0D;
+            cns.fill = GridBagConstraints.BOTH;
+            this.filler = new Container();
+            layoutManager.setConstraints(this.filler, cns);
+            add(this.filler);
         }
         validate();
     }
 
-    private String filterDigredKeyName(String key) {
-        if (key.startsWith("_digred_")) {
-            return key.substring(8);
-        }
-        return key;
-    }
-
-    private String displayValueOf(final Value value) {
-        if (TypeConstructor.STRING.covers(value)) {
-            return value.asString();
-        }
-        if (TypeConstructor.INTEGER.covers(value)) {
-            return Long.toString(value.asLong(), 10);
-        }
-        if (TypeConstructor.FLOAT.covers(value)) {
-            return Double.toString(value.asDouble());
-        }
-        if (TypeConstructor.DATE_TIME.covers(value)) {
-            return value.asZonedDateTime().toString();
-        }
-        if (TypeConstructor.NULL.covers(value)) {
-            return "[null]";
-        }
-        return "[cannot convert value for display]";
-    }
-
-    private DigredPropsPanel(DigredModel model, DataStore datastore) {
+    private DigredPropsPanel(DigredModel model, DataStore datastore, ViewUpdater updater) {
         this.model = model;
         this.datastore = datastore;
+        this.updater = updater;
     }
 }

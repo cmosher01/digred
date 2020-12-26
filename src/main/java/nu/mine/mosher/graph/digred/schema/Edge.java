@@ -44,10 +44,26 @@ implements Entity {
 
     @Override
     public void decompile(final PrintWriter out) {
-        tail.decompile(out);
+        tail().decompile(out);
         out.print(" ");
         out.print(typename());
         out.print(" ");
-        head.decompile(out);
+        head().decompile(out);
+    }
+
+    @Override
+    public boolean equals(Object object) {
+        if (!(object instanceof Edge that)) {
+            return false;
+        }
+        return
+            type().equals(that.type()) &&
+            tail().equals(that.tail()) &&
+            head().equals(that.head());
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(type(), tail(), head());
     }
 }

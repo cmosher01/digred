@@ -41,4 +41,17 @@ implements Entity {
     public void decompile(final PrintWriter out) {
         out.print(typename());
     }
+
+    @Override
+    public boolean equals(final Object object) {
+        if (!(object instanceof Vertex that)) {
+            return false;
+        }
+        return label().equals(that.label());
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(label());
+    }
 }

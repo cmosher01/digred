@@ -1,15 +1,12 @@
 package nu.mine.mosher.graph.digred.gui;
 
 import nu.mine.mosher.graph.digred.datastore.DataStore;
-import org.slf4j.*;
-import org.slf4j.Logger;
+import nu.mine.mosher.graph.digred.util.ThirdsLayoutManager;
+import nu.mine.mosher.graph.digred.util.Tracer;
 
 import java.awt.*;
-import java.awt.event.ActionEvent;
 
-public class DigredMainPanel extends Panel {
-    private static final Logger LOG = LoggerFactory.getLogger(DigredMainPanel.class);
-
+public class DigredMainPanel extends Panel implements ViewUpdater {
     private final DigredModel model;
     private final DataStore datastore;
     private DigredVertexPanel panelVertex;
@@ -18,6 +15,7 @@ public class DigredMainPanel extends Panel {
 
 
     public static DigredMainPanel create(final DigredModel model, final DataStore dataStore) {
+        Tracer.trace("DigredMainPanel: create");
         final DigredMainPanel panel = new DigredMainPanel(model, dataStore);
         panel.init();
         return panel;
@@ -29,25 +27,31 @@ public class DigredMainPanel extends Panel {
     }
 
     public void init() {
-        setLayout(new GridLayout(1,2));
-        setBackground(Color.CYAN); // TODO remove MAIN PANEL CYAN
+        setLayout(new ThirdsLayoutManager());
+        setBackground(DigredGui.debugLayout(Color.CYAN));
 
-        this.panelVertex = DigredVertexPanel.create(this.model, this.datastore);
-        this.panelVertex.setActionListener(this::onEntityChosen);
-        this.panelVertex.setBackground(Color.MAGENTA); // TODO remove LEFT-SIDE PANEL MAGENTA
+        this.panelProps = DigredPropsPanel.create(this.model, this.datastore, this);
+        this.panelProps.setBackground(DigredGui.debugLayout(Color.YELLOW));
+
+        this.panelVertex = DigredVertexPanel.create(this.model, this.datastore, this.panelProps);
+        this.panelVertex.setBackground(DigredGui.debugLayout(Color.MAGENTA));
+
         add(this.panelVertex);
-
-        this.panelProps = DigredPropsPanel.create(this.model, this.datastore);
-        this.panelProps.setBackground(Color.YELLOW); // TODO remove RIGHT-SIDE PANEL YELLOW
         add(this.panelProps);
     }
 
-    public void updateViewFromModel() {
-        this.panelVertex.updateViewFromModel();
-        this.panelProps.updateViewFromModel();
+    @Override
+    public void updateViewFromModel(final DigredEntityIdent ident) {
+        Tracer.trace("DigredMainPanel: updateViewFromModel");
+        Tracer.trace("    ident: "+ident);
+        this.panelVertex.updateViewFromModel(ident);
     }
 
-    private void onEntityChosen(ActionEvent e) {
-        this.panelProps.updateViewFromModel();
+
+
+
+    public static String labelFor(final long id, final String typename, final boolean vertex) {
+        final var t = ":" + typename + "{ID:" + id + "}";
+        return vertex ? "(" + t + ")" : "[" + t + "]";
     }
 }

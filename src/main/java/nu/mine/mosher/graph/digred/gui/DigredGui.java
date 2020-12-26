@@ -4,11 +4,13 @@ import ch.qos.logback.classic.*;
 import org.slf4j.*;
 import org.slf4j.Logger;
 
-import java.awt.EventQueue;
+import java.awt.*;
 import java.lang.reflect.InvocationTargetException;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class DigredGui {
+    public static boolean COLOR_LAYOUT = false;
+
     private static final Logger LOG = LoggerFactory.getLogger(DigredGui.class);
     private final AtomicReference<Thread> events = new AtomicReference<>();
 
@@ -34,6 +36,13 @@ public class DigredGui {
         }
     }
 
+    public static Color debugLayout(final Color c) {
+        if (COLOR_LAYOUT) {
+            return c;
+        }
+        return null;
+    }
+
 
 
     private DigredGui() {
@@ -46,7 +55,7 @@ public class DigredGui {
         final DigredFrame frame = DigredFrame.create();
         DigredMenuBar.create(frame);
 
-        frame.updateViewFromModel();
+        frame.updateFielMenu();
     }
 
     private static void initAwtLogging() {

@@ -2,6 +2,7 @@ package nu.mine.mosher.graph.digred.gui;
 
 import nu.mine.mosher.graph.digred.datastore.DataStore;
 import nu.mine.mosher.graph.digred.schema.*;
+import nu.mine.mosher.graph.digred.util.Tracer;
 import org.neo4j.driver.*;
 import org.neo4j.driver.Record;
 import org.neo4j.driver.internal.types.TypeConstructor;
@@ -12,82 +13,100 @@ import java.awt.*;
 import java.awt.event.*;
 import java.util.*;
 
-public class DigredVertexPanel extends Panel {
+public class DigredVertexPanel extends Panel implements ViewUpdater {
     private static final Logger LOG = LoggerFactory.getLogger(DigredVertexPanel.class);
 
     private final DigredModel model;
     private final DataStore datastore;
+    private final ViewUpdater updater;
 
     private Choice choiceVertex;
     private java.awt.List listboxResults;
+    private java.util.List<Record> listResults;
     private Button buttonNew;
 
-    public static DigredVertexPanel create(final DigredModel model, final DataStore dataStore) {
-        final DigredVertexPanel panel = new DigredVertexPanel(model, dataStore);
+    private DigredEntityIdent ident;
+
+    public static DigredVertexPanel create(final DigredModel model, final DataStore dataStore, final ViewUpdater updater) {
+        Tracer.trace("DigredVertexPanel: create");
+        final DigredVertexPanel panel = new DigredVertexPanel(model, dataStore, updater);
         panel.init();
         return panel;
     }
 
-    private ActionListener listenerAction;
-
-    private DigredVertexPanel(final DigredModel model, final DataStore dataStore) {
+    private DigredVertexPanel(final DigredModel model, final DataStore dataStore, final ViewUpdater updater) {
         this.model = model;
         this.datastore = dataStore;
+        this.updater = updater;
     }
 
     public void init() {
         final GridBagLayout layout = new GridBagLayout();
         setLayout(layout);
-        final GridBagConstraints howToLayOut = new GridBagConstraints();
-        howToLayOut.insets = new Insets(5,5,5,5);
-        howToLayOut.gridx = 0;
+        final GridBagConstraints lay = new GridBagConstraints();
+        lay.insets = new Insets(5,5,5,5);
+        lay.gridx = 0;
 
         this.choiceVertex = new Choice();
         this.model.schema.e().forEach(v -> this.choiceVertex.add(v.display()));
         this.choiceVertex.addItemListener(this::selectedVertex);
-        howToLayOut.gridy = 0;
-        howToLayOut.anchor = GridBagConstraints.PAGE_START;
-        layout.setConstraints(this.choiceVertex, howToLayOut);
-        howToLayOut.gridy = GridBagConstraints.RELATIVE;
-        howToLayOut.anchor = GridBagConstraints.CENTER;
+        layout.setConstraints(this.choiceVertex, lay);
         add(this.choiceVertex);
 
         this.listboxResults = new java.awt.List();
         this.listboxResults.addActionListener(this::selectedEntity);
-        howToLayOut.weightx = 1.0D;
-        howToLayOut.weighty = 1.0D;
-        howToLayOut.fill = GridBagConstraints.BOTH;
-        layout.setConstraints(this.listboxResults, howToLayOut);
-        howToLayOut.weightx = 0.0D;
-        howToLayOut.weighty = 0.0D;
-        howToLayOut.fill = GridBagConstraints.NONE;
+        lay.weightx = 1.0D;
+        lay.weighty = 1.0D;
+        lay.fill = GridBagConstraints.BOTH;
+        layout.setConstraints(this.listboxResults, lay);
+        lay.weightx = 0.0D;
+        lay.weighty = 0.0D;
+        lay.fill = GridBagConstraints.NONE;
         add(this.listboxResults);
 
         this.buttonNew = new Button("New");
         this.buttonNew.addActionListener(this::pressedNew);
-        layout.setConstraints(this.buttonNew, howToLayOut);
+        layout.setConstraints(this.buttonNew, lay);
         add(this.buttonNew);
+    }
+
+    @Override
+    public void updateViewFromModel(final DigredEntityIdent ident) {
+        Tracer.trace("DigredVertexPanel: updateViewFromModel");
+        Tracer.trace("    ident: "+ident);
+
+        this.ident = ident;
+
+        this.choiceVertex.select(iTypeOf(this.ident.type()));
+        queryEntities();
+
+        this.buttonNew.setEnabled(this.ident.type().vertex());
     }
 
     // User command: choose an entity type from drop down
     private void selectedVertex(final ItemEvent e) {
-        this.model.iVertexNext = this.choiceVertex.getSelectedIndex();
-        updateViewFromModel();
+        Tracer.trace("SELECT TYPE: "+e.paramString());
+        final var type = this.model.schema.e().get(this.choiceVertex.getSelectedIndex());
+        this.ident = new DigredEntityIdent(type);
+        updateViewFromModel(this.ident);
     }
 
     // User command: choose an entity from the list box
     private void selectedEntity(final ActionEvent e) {
-        this.model.iEntityNext = this.listboxResults.getSelectedIndex();
-        updateViewFromModel();
+        Tracer.trace("SELECT ENTITY: "+e.paramString());
+        final var record = this.listResults.get(this.listboxResults.getSelectedIndex());
+        final var id = record.get("id").asLong();
+        this.ident = this.ident.with(id);
+        this.updater.updateViewFromModel(ident);
     }
 
     // User command: pressed "New" button to create a new entity
     private void pressedNew(final ActionEvent e) {
-        final var vertex = this.model.schema.e().get(this.model.iVertexCurr);
-
-        if (vertex.vertex()) {
+        Tracer.trace("NEW: "+e.paramString());
+        final var entity = this.ident.type();
+        if (entity.vertex()) {
             final var cyProps = new ArrayList<String>();
-            vertex.props().forEach(prop -> {
+            entity.props().forEach(prop -> {
                 switch (prop.key()) {
                     case "_digred_pk" -> cyProps.add("pk: apoc.create.uuid()");
                     case "_digred_version" -> cyProps.add("version: 1");
@@ -97,105 +116,127 @@ public class DigredVertexPanel extends Panel {
             });
 
             final var query = new Query(String.format(
-                "CREATE (:%s { %s })",
-                vertex.typename(),
+                "CREATE (n:%s { %s }) RETURN ID(n) as id",
+                entity.typename(),
                 String.join(",", cyProps)));
 
+            final Record rec;
             try (final var session = datastore.session()) {
-                session.writeTransaction(tx -> tx.run(query).consume());
+                Tracer.trace(query.toString());
+                rec = session.writeTransaction(tx -> tx.run(query).single());
             }
 
-            this.model.iVertexCurr = -1;
-            updateViewFromModel();
-        } else {
-            // TODO: how to create a new edge?
+            updateViewFromModel(this.ident.with(rec.get("id").asLong()));
         }
     }
 
-    public void updateViewFromModel() {
-        this.choiceVertex.select(this.model.iVertexNext);
-        if (this.model.iVertexCurr != this.model.iVertexNext) {
-            queryEntities();
-            this.model.iVertexCurr = this.model.iVertexNext;
-        }
 
-        if (0 <= this.model.iEntityNext && this.model.iEntityNext < this.model.listResults.size()) {
-            this.listboxResults.select(this.model.iEntityNext);
-            this.listboxResults.makeVisible(this.model.iEntityNext);
-            if (this.model.iEntityCurr != this.model.iEntityNext) {
-                queryEntity();
-                this.model.iEntityCurr = this.model.iEntityNext;
+
+    private int iTypeOf(Entity type) {
+        int i = 0;
+        for (final var v : this.model.schema.e()) {
+            if (v.equals(type)) {
+                return i;
             }
-        } else if (this.model.iEntityNext < 0) {
-            queryEntity();
+            ++i;
         }
-
-        this.buttonNew.setEnabled(this.model.schema.e().get(this.model.iVertexCurr).vertex());
+        return 0;
     }
 
     // fill the list box with entities of the currently chosen entity type (with the drop down)
     private void queryEntities() {
-        final Entity vertex = this.model.schema.e().get(this.model.iVertexNext);
+        final var entity = this.ident.type();
+
         final Query query;
-        if (this.model.search.isBlank()) {
-            query = new Query(String.format("MATCH (n:%s) " +
-                    "RETURN n {.pk, .modified, .name }, ID(n) AS id " +
+
+        if (entity.vertex()) {
+            final Vertex vertex = (Vertex)entity;
+//            if (this.model.search.isBlank()) {
+//            "CASE exists(n.name) WHEN true THEN n.name ELSE n.modified+' '+labels(n)[0]+'['+ID(n)+']' END";
+                query = new Query(
+                    String.format(
+                        "MATCH (n:%s) " +
+                        "RETURN n {.pk, .modified, .name }, ID(n) AS id " +
+                        "ORDER BY n.modified DESC " +
+                        "LIMIT 100",
+                    vertex.typename()));
+//            } else {
+                // TODO google-style full-text search
+//                query = new Query("TODO");
+//            }
+        } else {
+            final Edge edge = (Edge)entity;
+            query = new Query(
+                String.format(
+                    "MATCH (tail:%s)-[n:%s]->(head:%s) "+
+                    "RETURN " +
+                        "tail.name, ID(tail) AS idTail, " +
+                        "head.name, ID(head) AS idHead, " +
+                        "n {.pk, .modified, .name}, ID(n) AS id "+
                     "ORDER BY n.modified DESC "+
                     "LIMIT 100",
-                vertex.typename()));
-        } else {
-            // TODO google-style full-text search
-            query = new Query("TODO");
+                edge.tail().typename(),
+                edge.typename(),
+                edge.head().typename()));
         }
 
         final java.util.List<Record> rs;
-        if (vertex.vertex()) {
-            try (final var session = datastore.session()) {
-                rs = session.readTransaction(tx -> tx.run(query).list());
-            }
-        } else {
-            // TODO
-            rs = Collections.emptyList();
+        try (final var session = datastore.session()) {
+            Tracer.trace(query.toString());
+            rs = session.readTransaction(tx -> tx.run(query).list());
+            Tracer.trace("records found: "+rs.size());
         }
 
-        this.model.listResults = new ArrayList<>();
+        this.listResults = new ArrayList<>();
         this.listboxResults.removeAll();
-        rs.forEach(r -> {
-            this.model.listResults.add(r);
-            this.listboxResults.add(resultDisplayNameOf(vertex.typename(), r));
-        });
+        long idFirst = -1;
+        int preselect = -1;
+        for (final var r : rs) {
+            final var id = r.get("id").asLong();
 
-        if (!this.model.listResults.isEmpty()) {
+            this.listResults.add(r);
+            this.listboxResults.add(resultDisplayNameOf(entity, r));
+
+            if (idFirst < 0) {
+                idFirst = id;
+            }
+            if (this.ident.id().isPresent()) {
+                if (id == this.ident.id().get()) {
+                    preselect = this.listResults.size() - 1;
+                }
+            }
+        }
+
+        if (this.listResults.isEmpty()) {
+            this.updater.updateViewFromModel(new DigredEntityIdent(this.ident.type()));
+        } else {
+            if (this.ident.id().isPresent() && 0 <= preselect) {
+                this.listboxResults.select(preselect);
+                this.listboxResults.makeVisible(preselect);
+            } else {
+                if (this.ident.id().isPresent()) {
+                    LOG.warn("Could not locate requested ID in list: "+this.ident.id().get());
+                }
+                Tracer.trace("selecting first item in list, with ID="+idFirst);
+                this.ident = this.ident.with(idFirst);
+                this.listboxResults.select(0);
+                this.listboxResults.makeVisible(0);
+            }
+            this.updater.updateViewFromModel(this.ident);
+
             EventQueue.invokeLater(() -> this.listboxResults.requestFocus());
         }
-
-        this.model.iEntityCurr = -1;
-        this.model.iEntityNext = this.model.listResults.isEmpty() ? -1 : 0;
-        System.err.println("auto-select entity from list, at index: "+this.model.iEntityNext);
-
-        preSelectList();
     }
 
-    private void preSelectList() {
-        // TODO
-    }
+    public static String resultDisplayNameOf(final Entity entity, final Record r) {
+        final var props = r.get("n").asMap(Values.ofValue());
+        var name = props.get("name");
+        if (Objects.isNull(name) || name.isNull() || name.isEmpty()) {
+            final var mod = props.get("modified");
+            final String ts = Objects.isNull(mod) ? "<null>" : TypeConstructor.DATE_TIME.covers(mod) ? mod.asZonedDateTime().toString() : ""+mod.asObject();
 
-    private static String resultDisplayNameOf(final String typename, final Record r) {
-        // TODO fix display name?
-        final Value mod = r.get("n").asMap(Values.ofValue()).get("modified");
-        final String ts = Objects.isNull(mod) ? "<null>" : TypeConstructor.DATE_TIME.covers(mod) ? mod.asZonedDateTime().toString() : ""+mod.asObject();
-        return r.get("name", "unnamed "+typename) + ", " +
-            "modified="+ ts +", " +
-            "ID=" + r.get("id") + "";
-    }
-
-    private void queryEntity() {
-        // TODO
-        this.listenerAction.actionPerformed(
-            new ActionEvent(this, ActionEvent.ACTION_PERFORMED, "", (int)System.currentTimeMillis(), 0));
-    }
-
-    public void setActionListener(final ActionListener listener) {
-        this.listenerAction = listener;
+            return ts+" "+DigredMainPanel.labelFor(r.get("id").asLong(), entity.typename(), entity.vertex());
+        }
+        return name.asString();
     }
 }

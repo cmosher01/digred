@@ -64,7 +64,7 @@ Transform TO Place
 # SOURCES
 
 Citation
-Citation SITES Citation
+Citation CITES Citation
 
 
 
@@ -81,7 +81,7 @@ Event WAS_AT Place
     certainty:INTEGER
 
 Persona
-Persona SITES Citation
+Persona CITES Citation
 Persona HAD_ROLE_IN Event
     certainty:INTEGER
 
@@ -95,4 +95,4 @@ Sameness IS Persona
     certainty:INTEGER
 
 Investigation
-Sameness IS_ASSERTED_BY Investigation
+Sameness ASSERTED_BY Investigation

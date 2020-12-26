@@ -3,6 +3,7 @@ package nu.mine.mosher.graph.digred.gui;
 import nu.mine.mosher.graph.digred.Digred;
 import nu.mine.mosher.graph.digred.datastore.DataStore;
 import nu.mine.mosher.graph.digred.schema.*;
+import nu.mine.mosher.graph.digred.util.Tracer;
 import org.antlr.v4.runtime.*;
 import org.slf4j.*;
 import org.slf4j.Logger;
@@ -29,6 +30,7 @@ class DigredFrame extends Frame {
 
 
     public static DigredFrame create() {
+        Tracer.trace("DigredFrame: create");
         final DigredFrame frame = new DigredFrame();
         frame.init();
         return frame;
@@ -43,7 +45,7 @@ class DigredFrame extends Frame {
         setLocationRelativeTo(CENTER_ON_SCREEN);
 
         // TODO add menu items to allow user to connect and disconnect to the database
-        this.datastore.connect(DataStore.NEO, "neo4j", "neo4j");
+        this.datastore.connect(DataStore.NEO, "neo4j", "admin");
 
 
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
@@ -141,6 +143,8 @@ class DigredFrame extends Frame {
     private void tryFileOpen() throws IOException {
         final File file = askOpenFile();
         if (Objects.nonNull(file)) {
+            Tracer.trace("OPEN FILE: "+file);
+
             fileClose(null);
 
             final var in = CharStreams.fromStream(new BufferedInputStream(new FileInputStream(file)), StandardCharsets.UTF_8);
@@ -157,8 +161,17 @@ class DigredFrame extends Frame {
 
             this.panelMain = DigredMainPanel.create(new DigredModel(schema), this.datastore);
             add(this.panelMain);
-            updateViewFromModel();
-            this.panelMain.updateViewFromModel();
+            updateFielMenu();
+
+
+
+            // get the first type in the list, that's the one we will display initially
+            // and, we don't specify an ID of an entity to find and pre-select,
+            // so it will default to the lastest entities
+            final var ident = new DigredEntityIdent(schema.e().get(0));
+            this.panelMain.updateViewFromModel(ident);
+
+
 
             validate();
         }
@@ -205,13 +218,15 @@ class DigredFrame extends Frame {
         if (Objects.nonNull(this.panelMain)) {
             remove(this.panelMain);
             this.panelMain = null;
-            updateViewFromModel();
+            updateFielMenu();
         }
     }
 
-    public void updateViewFromModel() {
-        this.itemClose.setEnabled(Objects.nonNull(this.panelMain));
-        this.itemOpen.setEnabled(Objects.isNull(this.panelMain));
+    public void updateFielMenu() {
+        final var loaded = Objects.nonNull(this.panelMain);
+
+        this.itemClose.setEnabled(loaded);
+        this.itemOpen.setEnabled(!loaded);
     }
 
 
