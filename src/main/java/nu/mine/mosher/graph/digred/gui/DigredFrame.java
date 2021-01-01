@@ -161,13 +161,13 @@ class DigredFrame extends Frame {
 
             this.panelMain = DigredMainPanel.create(new DigredModel(schema), this.datastore);
             add(this.panelMain);
-            updateFielMenu();
+            updateFileMenu();
 
 
 
             // get the first type in the list, that's the one we will display initially
             // and, we don't specify an ID of an entity to find and pre-select,
-            // so it will default to the lastest entities
+            // so it will default to the latest entities
             final var ident = new DigredEntityIdent(schema.e().get(0));
             this.panelMain.updateViewFromModel(ident);
 
@@ -218,11 +218,11 @@ class DigredFrame extends Frame {
         if (Objects.nonNull(this.panelMain)) {
             remove(this.panelMain);
             this.panelMain = null;
-            updateFielMenu();
+            updateFileMenu();
         }
     }
 
-    public void updateFielMenu() {
+    public void updateFileMenu() {
         final var loaded = Objects.nonNull(this.panelMain);
 
         this.itemClose.setEnabled(loaded);

@@ -1,0 +1,10 @@
+_digred_common
+    _digred_pk:UUID
+    _digred_version:INTEGER
+    _digred_created:DATETIME
+    _digred_modified:DATETIME
+    _digred_name:STRING
+
+Test
+    x:TEXT
+    f:BOOLEAN

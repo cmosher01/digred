@@ -34,7 +34,7 @@ public class DigredChoosePopup extends Dialog {
     private Optional<Long> id = Optional.empty();
 
     private DigredChoosePopup(final Frame owner, final DigredModel model, final DataStore dataStore, final Entity vertexChoose) {
-        super(owner, ":"+vertexChoose.typename(), true);
+        super(owner, vertexChoose.display(), true);
         this.model = model;
         this.datastore = dataStore;
         this.vertexChoose = vertexChoose;

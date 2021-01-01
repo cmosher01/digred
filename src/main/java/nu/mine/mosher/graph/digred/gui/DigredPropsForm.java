@@ -6,7 +6,9 @@ import nu.mine.mosher.graph.digred.util.Tracer;
 import org.neo4j.driver.Query;
 import org.neo4j.driver.Record;
 import org.neo4j.driver.Value;
+import org.neo4j.driver.Values;
 import org.neo4j.driver.internal.types.TypeConstructor;
+import org.neo4j.driver.internal.value.NullValue;
 
 import java.awt.*;
 import java.awt.event.ActionEvent;
@@ -17,8 +19,8 @@ public class DigredPropsForm extends Container {
     private final DigredModel model;
     private final DataStore datastore;
     private final ViewUpdater updater;
-    private final List<TextComponent> fields = new ArrayList<>(16);
-    private List<String> valuesOrig = new ArrayList<>(16);
+    private final List<Component> fields = new ArrayList<>(16);
+    private List<Value> valuesOrig = new ArrayList<>(16);
     private Button buttonSave;
     private Button buttonCancel;
     private Button buttonDelete;
@@ -65,30 +67,51 @@ public class DigredPropsForm extends Container {
         final boolean edge = rec.containsKey("tail");
 
         if (edge) {
+            final var e = (Edge)typeEntity;
+
             final var tail = rec.get("tail").asNode();
             final var vertexTail = this.model.schema.of(tail.labels().iterator().next());
-            final var head = rec.get("head").asNode();
-            final var vertexHead = this.model.schema.of(head.labels().iterator().next());
-
             final var labelTail = new Button();
-            labelTail.setLabel(DigredMainPanel.labelFor(tail.id(), vertexTail.typename(), true)+" "+tail.get("name"));
-            labelTail.addActionListener(e -> selectLink(e, vertexTail, tail.id()));
+            String stail;
+            final var propsT = tail.asMap(Values.ofValue());
+            var nameT = propsT.get("name");
+            if (Objects.nonNull(nameT) && !nameT.isNull() && !nameT.isEmpty()) {
+                stail = nameT.asString();
+            } else {
+                stail = e.tail().display(rec.get("idTail").asLong());
+            }
+            labelTail.setLabel(stail);
+            labelTail.addActionListener(event -> selectLink(event, vertexTail, tail.id()));
             layout.setConstraints(labelTail, lay);
             add(labelTail);
+
             final var labelNode = new Label();
             labelNode.setAlignment(Label.CENTER);
-            labelNode.setText(DigredMainPanel.labelFor(node.id(), typeEntity.typename(), false));
+            labelNode.setText(e.display(node.id()));
             layout.setConstraints(labelNode, lay);
             add(labelNode);
+
+            final var head = rec.get("head").asNode();
+            final var vertexHead = this.model.schema.of(head.labels().iterator().next());
             final var labelHead = new Button();
-            labelHead.setLabel(DigredMainPanel.labelFor(head.id(), vertexHead.typename(), true)+" "+head.get("name"));
-            labelHead.addActionListener(e -> selectLink(e, vertexHead, head.id()));
+            String shead;
+            final var propsH = head.asMap(Values.ofValue());
+            var nameH = propsH.get("name");
+            if (Objects.nonNull(nameH) && !nameH.isNull() && !nameH.isEmpty()) {
+                shead = nameH.asString();
+            } else {
+                shead = e.head().display(rec.get("idHead").asLong());
+            }
+            labelHead.setLabel(shead);
+            labelHead.addActionListener(event -> selectLink(event, vertexHead, head.id()));
             layout.setConstraints(labelHead, lay);
             add(labelHead);
         } else {
+            final var v = (Vertex)typeEntity;
+
             final var labelNode = new Label();
             labelNode.setAlignment(Label.CENTER);
-            labelNode.setText(DigredMainPanel.labelFor(node.id(), typeEntity.typename(), false));
+            labelNode.setText(v.display(node.id()));
             layout.setConstraints(labelNode, lay);
             add(labelNode);
         }
@@ -97,32 +120,53 @@ public class DigredPropsForm extends Container {
         {
             final var layout2 = new GridBagLayout();
             p.setLayout(layout2);
-            final var lay2 = new GridBagConstraints();
-            lay2.insets = new Insets(5,5,5,5);
-            lay2.anchor = GridBagConstraints.LINE_START;
 
             final var props = typeEntity.props();
 
             this.fields.clear();
             props.forEach(prop -> {
-                final var key = filterDigredKeyName(prop.key());
+                final var lay2 = new GridBagConstraints();
+                lay2.insets = new Insets(5,5,5,5);
+                lay2.anchor = GridBagConstraints.LINE_START;
+
+
+
                 final var labelProp = new Label(prop.display());
+
                 lay2.gridx = 0;
                 layout2.setConstraints(labelProp, lay2);
                 p.add(labelProp);
-                final var value = node.get(key);
-                final var orig = displayValueOf(value);
-                this.valuesOrig.add(orig);
-                final var stringProp = new TextField(orig);
-                stringProp.setEditable(!readonly(prop) && canConvert(value));
-                this.fields.add(stringProp);
+
+
+
+                final var value = node.get(filterDigredKeyName(prop.key()));
+                this.valuesOrig.add(value);
+
+                final Component ctrlProp;
+                switch (prop.type()) {
+                    case TEXT -> {
+                        final TextArea t = new TextArea(displayValueOf(value));
+                        t.setEditable(!readonly(prop) && canConvert(value));
+                        ctrlProp = t;
+                    }
+                    case BOOLEAN -> {
+                        final Checkbox c = new Checkbox(prop.key(), value.isNull() ? false : value.asBoolean());
+                        c.setEnabled(!readonly(prop) && canConvert(value));
+                        ctrlProp = c;
+                    }
+                    default -> {
+                        final TextField t = new TextField(displayValueOf(value));
+                        t.setEditable(!readonly(prop) && canConvert(value));
+                        ctrlProp = t;
+                    }
+                }
+                this.fields.add(ctrlProp);
+
                 lay2.gridx = 1;
                 lay2.weightx = 1.0D;
                 lay2.fill = GridBagConstraints.HORIZONTAL;
-                layout2.setConstraints(stringProp, lay2);
-                lay2.weightx = 0.0D;
-                lay2.fill = GridBagConstraints.NONE;
-                p.add(stringProp);
+                layout2.setConstraints(ctrlProp, lay2);
+                p.add(ctrlProp);
             });
         }
         lay.weightx = 1.0D;
@@ -160,7 +204,9 @@ public class DigredPropsForm extends Container {
                 typeEntity.typename()),
                 Map.of("id", idEntity));
         } else {
-            query = new Query(String.format("MATCH (tail)-[n:%s]->(head) WHERE ID(n) = $id RETURN n, tail, head",
+            query = new Query(String.format(
+                "MATCH (tail)-[n:%s]->(head) WHERE ID(n) = $id " +
+                "RETURN n, tail, ID(tail) AS idTail, head, ID(head) AS idHead",
                 typeEntity.typename()),
                 Map.of("id", idEntity));
         }
@@ -204,8 +250,13 @@ public class DigredPropsForm extends Container {
             throw new IllegalStateException("error in list of fields");
         }
         for (int i = 0; i < props.size(); ++i) {
+            final var prop = props.get(i);
             final var valueOrig = this.valuesOrig.get(i);
-            this.fields.get(i).setText(valueOrig);
+            final var cmp = this.fields.get(i);
+            switch (prop.type()) {
+                case BOOLEAN -> ((Checkbox)cmp).setState(valueOrig.isNull() ? false : valueOrig.asBoolean());
+                default -> ((TextComponent)cmp).setText(displayValueOf(valueOrig));
+            }
         }
     }
 
@@ -234,13 +285,24 @@ public class DigredPropsForm extends Container {
                 // ignore
             } else {
                 final var valueOrig = this.valuesOrig.get(i);
-                final var valueNew = this.fields.get(i).getText();
+                final var cmp = this.fields.get(i);
+                final Value valueNew =
+                switch (prop.type()) {
+                    case INTEGER -> Values.value(Long.parseLong(((TextComponent)cmp).getText(),10));
+                    case FLOAT -> Values.value(Double.parseDouble(((TextComponent)cmp).getText()));
+                    case BOOLEAN -> Values.value(((Checkbox)cmp).getState());
+                    // TODO other types
+                    default -> {
+                        final var t = ((TextComponent) cmp).getText();
+                        yield t.isEmpty() ? NullValue.NULL : Values.value(t);
+                    }
+                };
                 if (!valueNew.equals(valueOrig)) {
                     System.err.println("detected change: " + prop.key() + ": " + valueOrig + " --> " + valueNew);
-                    if (valueNew.isEmpty()) {
+                    if (valueNew.isNull()) {
                         cyRemoves.add("n." + filterDigredKeyName(prop.key()));
                     } else {
-                        params.put(filterDigredKeyName(prop.key()), convertValueToNeo4j(prop.type(), valueNew));
+                        params.put(filterDigredKeyName(prop.key()), valueNew);
                     }
                 }
             }
@@ -251,7 +313,7 @@ public class DigredPropsForm extends Container {
                 String.format(
                     entity.vertex()
                     ? "MATCH (n:%s) WHERE ID(n) = $id SET n += $map %s %s %s"
-                    : "MATCH ()-[r:%s]-() WHERE ID(r) = $id SET n += $map %s %s %s",
+                    : "MATCH ()-[n:%s]-() WHERE ID(n) = $id SET n += $map %s %s %s",
                     entity.typename(),
                     hasVersion ? ", n.version = n.version+1" : "",
                     hasModified ? ", n.modified = datetime.realtime()" : "",
@@ -269,15 +331,6 @@ public class DigredPropsForm extends Container {
         this.updater.updateViewFromModel(this.ident);
     }
 
-    private Object convertValueToNeo4j(final DataType type, String v) {
-        return switch (type) {
-            case INTEGER -> Long.parseLong(v, 10);
-            case FLOAT -> Double.parseDouble(v);
-            // TODO convert other datatypes
-            default -> v;
-        };
-    }
-
     private static String filterDigredKeyName(final String key) {
         return DigraphSchema.filteredKeyword(key);
     }
@@ -288,10 +341,10 @@ public class DigredPropsForm extends Container {
             TypeConstructor.INTEGER.covers(value) ||
             TypeConstructor.FLOAT.covers(value) ||
             TypeConstructor.DATE_TIME.covers(value) ||
+            TypeConstructor.BOOLEAN.covers(value) ||
             TypeConstructor.NULL.covers(value);
         /*
             TODO: handle remaining datatypes:
-            BOOLEAN
             DATE
             TIME
             LOCAL_TIME
@@ -301,7 +354,7 @@ public class DigredPropsForm extends Container {
          */
     }
 
-    private static String displayValueOf(final Value value) {
+    public static String displayValueOf(final Value value) {
         if (Objects.isNull(value)) {
             return "";
         }

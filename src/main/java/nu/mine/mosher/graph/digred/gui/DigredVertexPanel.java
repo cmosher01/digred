@@ -13,6 +13,8 @@ import java.awt.*;
 import java.awt.event.*;
 import java.util.*;
 
+import static nu.mine.mosher.graph.digred.gui.DigredPropsForm.displayValueOf;
+
 public class DigredVertexPanel extends Panel implements ViewUpdater {
     private static final Logger LOG = LoggerFactory.getLogger(DigredVertexPanel.class);
 
@@ -170,8 +172,8 @@ public class DigredVertexPanel extends Panel implements ViewUpdater {
                 String.format(
                     "MATCH (tail:%s)-[n:%s]->(head:%s) "+
                     "RETURN " +
-                        "tail.name, ID(tail) AS idTail, " +
-                        "head.name, ID(head) AS idHead, " +
+                        "tail {.pk, .modified, .name}, ID(tail) AS idTail, " +
+                        "head {.pk, .modified, .name}, ID(head) AS idHead, " +
                         "n {.pk, .modified, .name}, ID(n) AS id "+
                     "ORDER BY n.modified DESC "+
                     "LIMIT 100",
@@ -229,14 +231,56 @@ public class DigredVertexPanel extends Panel implements ViewUpdater {
     }
 
     public static String resultDisplayNameOf(final Entity entity, final Record r) {
-        final var props = r.get("n").asMap(Values.ofValue());
-        var name = props.get("name");
-        if (Objects.isNull(name) || name.isNull() || name.isEmpty()) {
-            final var mod = props.get("modified");
-            final String ts = Objects.isNull(mod) ? "<null>" : TypeConstructor.DATE_TIME.covers(mod) ? mod.asZonedDateTime().toString() : ""+mod.asObject();
+        if (entity.vertex()) {
+            final var e = (Vertex)entity;
+            final var props = r.get("n").asMap(Values.ofValue());
+            var ts = displayValueOf(props.get("modified"));
+            if (!ts.isEmpty()) {
+                ts = ts+": ";
+            }
 
-            return ts+" "+DigredMainPanel.labelFor(r.get("id").asLong(), entity.typename(), entity.vertex());
+            var name = props.get("name");
+            if (Objects.nonNull(name) && !name.isNull() && !name.isEmpty()) {
+                return name.asString();
+            }
+            return ts+e.display(r.get("id").asLong());
+        } else {
+            final var e = (Edge)entity;
+            final var props = r.get("n").asMap(Values.ofValue());
+
+            final String ts;
+            final String rel;
+            var name = props.get("name");
+            if (Objects.nonNull(name) && !name.isNull() && !name.isEmpty()) {
+                ts = "";
+                rel = name.asString();
+            } else {
+                ts = displayValueOf(props.get("modified"))+": ";
+                rel = e.display(r.get("id").asLong());
+            }
+
+            final String tail;
+            {
+                final var propsT = r.get("tail").asMap(Values.ofValue());
+                var nameT = propsT.get("name");
+                if (Objects.nonNull(nameT) && !nameT.isNull() && !nameT.isEmpty()) {
+                    tail = nameT.asString();
+                } else {
+                    tail = e.tail().display(r.get("idTail").asLong());
+                }
+            }
+            final String head;
+            {
+                final var propsT = r.get("head").asMap(Values.ofValue());
+                var nameT = propsT.get("name");
+                if (Objects.nonNull(nameT) && !nameT.isNull() && !nameT.isEmpty()) {
+                    head = nameT.asString();
+                } else {
+                    head = e.head().display(r.get("idHead").asLong());
+                }
+            }
+
+            return ts+tail+" - "+rel+" -> "+head;
         }
-        return name.asString();
     }
 }

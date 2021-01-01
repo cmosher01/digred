@@ -6,12 +6,16 @@ import nu.mine.mosher.graph.digred.schema.Vertex;
 import nu.mine.mosher.graph.digred.util.Tracer;
 import org.neo4j.driver.Query;
 import org.neo4j.driver.Record;
+import org.neo4j.driver.Values;
 
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.util.ArrayList;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
+
+import static nu.mine.mosher.graph.digred.gui.DigredPropsForm.displayValueOf;
 
 public class DigredLinksPanel extends Container {
     private final DigredModel model;
@@ -65,7 +69,7 @@ public class DigredLinksPanel extends Container {
 
         final var vertex = (Vertex)entity;
         this.model.edgesOut.get(vertex).forEach(e -> {
-            final var b = new Button("Add  "+"(this)-[:"+e.typename()+"]->"+"(:"+e.head().typename()+")");
+            final var b = new Button("Add   "+e.display("this", "", ""));
             b.addActionListener(x -> pressedAdd(x, e, false));
             this.buttons.add(b);
             layout.setConstraints(b, cns);
@@ -73,7 +77,7 @@ public class DigredLinksPanel extends Container {
         });
 
         this.model.edgesIn.get(vertex).forEach(e -> {
-            final var b = new Button("(:"+e.tail().typename()+")"+"-[:"+e.typename()+"]->(this)"+"  Add");
+            final var b = new Button("Add   "+e.display("", "", "this"));
             b.addActionListener(x -> pressedAdd(x, e, true));
             this.buttons.add(b);
             layout.setConstraints(b, cns);
@@ -143,7 +147,7 @@ public class DigredLinksPanel extends Container {
 
         {
             final Query query = new Query(
-                String.format("MATCH (me:%s)-[r]->(n) WHERE ID(me) = $id RETURN r, n", this.ident.type().typename()),
+                String.format("MATCH (me:%s)-[r]->(n) WHERE ID(me) = $id RETURN r, ID(r) AS idR, n, ID(n) AS idN", this.ident.type().typename()),
                 Map.of("id", this.ident.id().get()));
             final java.util.List<Record> rs;
             try (final var session = this.datastore.session()) {
@@ -162,12 +166,30 @@ public class DigredLinksPanel extends Container {
                 final var link = new DigredEntityIdent(type, rel.id());
                 this.links.add(link);
 
-                this.listboxLinks.add(displayNameOf(r, false));
+                final var propsT = r.get("n").asMap(Values.ofValue());
+                var nameT = propsT.get("name");
+                String shead;
+                if (Objects.nonNull(nameT) && !nameT.isNull() && !nameT.isEmpty()) {
+                    shead = nameT.asString();
+                } else {
+                    shead = type.head().display(r.get("idN").asLong());
+                }
+
+                final var propsR = r.get("r").asMap(Values.ofValue());
+                var nameR = propsR.get("name");
+                String srel;
+                if (Objects.nonNull(nameR) && !nameR.isNull() && !nameR.isEmpty()) {
+                    srel = nameR.asString();
+                } else {
+                    srel = type.display(r.get("idR").asLong());
+                }
+
+                this.listboxLinks.add("(this) - "+srel+" -> "+shead);
             });
         }
         {
             final Query query = new Query(
-                String.format("MATCH (me:%s)<-[r]-(n) WHERE ID(me) = $id RETURN r, n", this.ident.type().typename()),
+                String.format("MATCH (me:%s)<-[r]-(n) WHERE ID(me) = $id RETURN r, ID(r) AS idR, n, ID(n) AS idN", this.ident.type().typename()),
                 Map.of("id", this.ident.id().get()));
             final java.util.List<Record> rs;
             try (final var session = this.datastore.session()) {
@@ -186,19 +208,26 @@ public class DigredLinksPanel extends Container {
                 final var link = new DigredEntityIdent(type, rel.id());
                 this.links.add(link);
 
-                this.listboxLinks.add(displayNameOf(r, true));
+                final var propsR = r.get("r").asMap(Values.ofValue());
+                var nameR = propsR.get("name");
+                String srel;
+                if (Objects.nonNull(nameR) && !nameR.isNull() && !nameR.isEmpty()) {
+                    srel = nameR.asString();
+                } else {
+                    srel = type.display(r.get("idR").asLong());
+                }
+
+                final var propsT = r.get("n").asMap(Values.ofValue());
+                var nameT = propsT.get("name");
+                String stail;
+                if (Objects.nonNull(nameT) && !nameT.isNull() && !nameT.isEmpty()) {
+                    stail = nameT.asString();
+                } else {
+                    stail = type.tail().display(r.get("idN").asLong());
+                }
+
+                this.listboxLinks.add(stail+" - "+srel+" -> (this)");
             });
         }
-    }
-
-    private String displayNameOf(final Record r, final boolean incoming) {
-        final var nod = r.get("n").asNode();
-        final var rel = r.get("r").asRelationship();
-
-        final var dNod = "(:" + nod.labels().iterator().next() + "{id=" + nod.id() + ",name="+nod.get("name")+"})";
-        final var dRel = "-[:" + rel.type() + "]->";
-        return incoming
-            ? dNod + dRel + "(this)"
-            : "(this)" + dRel + dNod;
     }
 }

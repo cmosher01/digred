@@ -46,12 +46,4 @@ public class DigredMainPanel extends Panel implements ViewUpdater {
         Tracer.trace("    ident: "+ident);
         this.panelVertex.updateViewFromModel(ident);
     }
-
-
-
-
-    public static String labelFor(final long id, final String typename, final boolean vertex) {
-        final var t = ":" + typename + "{ID:" + id + "}";
-        return vertex ? "(" + t + ")" : "[" + t + "]";
-    }
 }
