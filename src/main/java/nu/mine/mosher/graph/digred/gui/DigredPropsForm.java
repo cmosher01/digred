@@ -15,6 +15,8 @@ import java.awt.event.ActionEvent;
 import java.util.*;
 import java.util.List;
 
+import static java.awt.FlowLayout.LEADING;
+
 public class DigredPropsForm extends Container {
     private final DigredModel model;
     private final DataStore datastore;
@@ -67,6 +69,8 @@ public class DigredPropsForm extends Container {
         final boolean edge = rec.containsKey("tail");
 
         if (edge) {
+            final var p = new Container();
+            p.setLayout(new FlowLayout(LEADING));
             final var e = (Edge)typeEntity;
 
             final var tail = rec.get("tail").asNode();
@@ -82,14 +86,12 @@ public class DigredPropsForm extends Container {
             }
             labelTail.setLabel(stail);
             labelTail.addActionListener(event -> selectLink(event, vertexTail, tail.id()));
-            layout.setConstraints(labelTail, lay);
-            add(labelTail);
+            p.add(labelTail);
 
             final var labelNode = new Label();
             labelNode.setAlignment(Label.CENTER);
             labelNode.setText(e.display(node.id()));
-            layout.setConstraints(labelNode, lay);
-            add(labelNode);
+            p.add(labelNode);
 
             final var head = rec.get("head").asNode();
             final var vertexHead = this.model.schema.of(head.labels().iterator().next());
@@ -104,8 +106,14 @@ public class DigredPropsForm extends Container {
             }
             labelHead.setLabel(shead);
             labelHead.addActionListener(event -> selectLink(event, vertexHead, head.id()));
-            layout.setConstraints(labelHead, lay);
-            add(labelHead);
+            p.add(labelHead);
+
+            lay.weightx = 1.0D;
+            lay.fill = GridBagConstraints.HORIZONTAL;
+            layout.setConstraints(p, lay);
+            lay.weightx = 0.0D;
+            lay.fill = GridBagConstraints.NONE;
+            add(p);
         } else {
             final var v = (Vertex)typeEntity;
 
@@ -286,14 +294,14 @@ public class DigredPropsForm extends Container {
             } else {
                 final var valueOrig = this.valuesOrig.get(i);
                 final var cmp = this.fields.get(i);
-                final Value valueNew =
-                switch (prop.type()) {
+                final Value valueNew = switch (prop.type()) {
+                    // TODO handle invalid format
                     case INTEGER -> Values.value(Long.parseLong(((TextComponent)cmp).getText(),10));
                     case FLOAT -> Values.value(Double.parseDouble(((TextComponent)cmp).getText()));
                     case BOOLEAN -> Values.value(((Checkbox)cmp).getState());
                     // TODO other types
                     default -> {
-                        final var t = ((TextComponent) cmp).getText();
+                        final var t = ((TextComponent)cmp).getText();
                         yield t.isEmpty() ? NullValue.NULL : Values.value(t);
                     }
                 };

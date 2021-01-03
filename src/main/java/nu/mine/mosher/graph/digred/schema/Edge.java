@@ -36,13 +36,6 @@ implements Entity {
             +head().display(nameHead);
     }
 
-//    public String display(final long idTail, final long id, final long idHead) {
-//        return
-//            tail().display(idTail)+
-//            "-[:"+type()+"{ID:"+id+"}]->"
-//            +head().display(idHead);
-//    }
-
     public String display(final String name) {
         return "["+name+":"+type()+"]";
     }
