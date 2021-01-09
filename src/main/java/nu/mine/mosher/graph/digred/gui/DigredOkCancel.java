@@ -15,7 +15,7 @@ public class DigredOkCancel extends Dialog {
     }
 
     private DigredOkCancel(final Frame owner, final String message) {
-        super(owner,true);
+        super(owner, true);
         this.message = message;
     }
 
@@ -45,7 +45,7 @@ public class DigredOkCancel extends Dialog {
         pressedCancel(e);
     }
 
-    private void pressedCancel(ActionEvent e) {
+    private void pressedCancel(final ActionEvent e) {
         setVisible(false);
         dispose();
     }

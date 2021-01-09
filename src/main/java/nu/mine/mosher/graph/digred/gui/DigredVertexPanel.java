@@ -3,11 +3,10 @@ package nu.mine.mosher.graph.digred.gui;
 import nu.mine.mosher.graph.digred.datastore.DataStore;
 import nu.mine.mosher.graph.digred.schema.*;
 import nu.mine.mosher.graph.digred.util.Tracer;
-import org.neo4j.driver.*;
 import org.neo4j.driver.Record;
-import org.neo4j.driver.internal.types.TypeConstructor;
-import org.slf4j.*;
+import org.neo4j.driver.*;
 import org.slf4j.Logger;
+import org.slf4j.*;
 
 import java.awt.*;
 import java.awt.event.*;

@@ -2,52 +2,66 @@ package nu.mine.mosher.graph.digred.gui;
 
 import nu.mine.mosher.graph.digred.datastore.DataStore;
 import nu.mine.mosher.graph.digred.schema.Entity;
-import org.neo4j.driver.Query;
 import org.neo4j.driver.Record;
+import org.neo4j.driver.*;
 
+import java.awt.List;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.util.ArrayList;
-import java.util.Optional;
+import java.awt.event.*;
+import java.util.*;
 
+import static java.awt.event.KeyEvent.*;
 import static nu.mine.mosher.graph.digred.gui.DigredVertexPanel.resultDisplayNameOf;
 
+@SuppressWarnings("OptionalUsedAsFieldOrParameterType")
 public class DigredChoosePopup extends Dialog {
-    public static Optional<Long> run(final DigredModel model, final DataStore dataStore, final Entity vertexChoose) {
-        // TODO pass main frame as parent to this dialog
-        final var popup = new DigredChoosePopup(null, model, dataStore, vertexChoose);
+    public static Optional<Long> run(final Frame owner, final DataStore dataStore, final Entity vertexChoose) {
+        final var popup = new DigredChoosePopup(owner, dataStore, vertexChoose);
         popup.init();
         popup.queryEntities();
         popup.setVisible(true);
         return popup.id;
     }
 
-    private final DigredModel model;
     private final DataStore datastore;
     private final Entity vertexChoose;
 
     private List listboxResults;
     private java.util.List<Record> listResults;
-    private Button buttonOK;
-    private Button buttonCancel;
 
     private Optional<Long> id = Optional.empty();
 
-    private DigredChoosePopup(final Frame owner, final DigredModel model, final DataStore dataStore, final Entity vertexChoose) {
+    private DigredChoosePopup(final Frame owner, final DataStore dataStore, final Entity vertexChoose) {
         super(owner, vertexChoose.display(), true);
-        this.model = model;
         this.datastore = dataStore;
         this.vertexChoose = vertexChoose;
     }
 
     private void init() {
+        final var esc = new KeyAdapter() {
+            @Override
+            public void keyTyped(KeyEvent e) {
+                if (e.getKeyChar() == VK_ESCAPE) {
+                    done(null);
+                }
+            }
+        };
+
+        final var ret = new KeyAdapter() {
+            @Override
+            public void keyTyped(KeyEvent e) {
+                if (e.getKeyChar() == VK_ENTER) {
+                    choseVertex(null);
+                }
+            }
+        };
+
         setLayout(new BorderLayout());
         setSize(640, 1080);
 
-
-
         this.listboxResults = new List();
         this.listboxResults.addActionListener(this::choseVertex);
+        this.listboxResults.addKeyListener(esc);
         add(this.listboxResults);
 
 
@@ -55,23 +69,34 @@ public class DigredChoosePopup extends Dialog {
         final var buttons = new Container();
         buttons.setLayout(new FlowLayout());
 
-        this.buttonCancel = new Button("Cancel");
-        this.buttonCancel.addActionListener(this::done);
-        buttons.add(this.buttonCancel);
+        final var buttonCancel = new Button("Cancel");
+        buttonCancel.addActionListener(this::done);
+        buttonCancel.addKeyListener(esc);
+        buttons.add(buttonCancel);
 
-        this.buttonOK = new Button("OK");
-        this.buttonOK.addActionListener(this::choseVertex);
-        buttons.add(this.buttonOK);
+        final var buttonOK = new Button("OK");
+        buttonOK.addActionListener(this::choseVertex);
+        buttonOK.addKeyListener(esc);
+        buttonOK.addKeyListener(ret);
+        buttons.add(buttonOK);
 
         add(buttons, "South");
 
-        // TODO capture window-close event
-        // TODO: disable OK button if nothing selected in list
+        addWindowListener(new WindowAdapter() {
+            public void windowClosing(final WindowEvent ev) {
+                done(null);
+            }
+        });
+
+        relocateWindow(this);
     }
 
     private void choseVertex(final ActionEvent e) {
-        final var rec = this.listResults.get(this.listboxResults.getSelectedIndex());
-        this.id = Optional.of(rec.get("id").asLong());
+        final int i = this.listboxResults.getSelectedIndex();
+        if (0 <= i) {
+            final var rec = this.listResults.get(i);
+            this.id = Optional.of(rec.get("id").asLong());
+        }
         done(e);
     }
 
@@ -107,7 +132,13 @@ public class DigredChoosePopup extends Dialog {
         });
 
         if (!this.listResults.isEmpty()) {
+            this.listboxResults.select(0);
             EventQueue.invokeLater(() -> this.listboxResults.requestFocus());
         }
+    }
+
+    private void relocateWindow(final Window window) {
+        window.setSize(getBounds().width-100, getBounds().height-100);
+        window.setLocationRelativeTo(this);
     }
 }

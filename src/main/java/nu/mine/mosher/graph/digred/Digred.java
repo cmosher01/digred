@@ -2,8 +2,7 @@ package nu.mine.mosher.graph.digred;
 
 import nu.mine.mosher.graph.digred.gui.DigredGui;
 import nu.mine.mosher.graph.digred.util.*;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.slf4j.*;
 
 import java.io.*;
 import java.nio.file.*;

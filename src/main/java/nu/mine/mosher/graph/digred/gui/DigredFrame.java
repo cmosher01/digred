@@ -6,7 +6,6 @@ import nu.mine.mosher.graph.digred.schema.*;
 import nu.mine.mosher.graph.digred.util.Tracer;
 import org.antlr.v4.runtime.*;
 import org.slf4j.*;
-import org.slf4j.Logger;
 
 import java.awt.*;
 import java.awt.event.*;
@@ -45,7 +44,7 @@ class DigredFrame extends Frame {
         setLocationRelativeTo(CENTER_ON_SCREEN);
 
         // TODO add menu items to allow user to connect and disconnect to the database
-        this.datastore.connect(DataStore.NEO, "neo4j", "admin");
+        this.datastore.connect(DataStore.NEO, "neo4j", "neo4j"/*"admin"*/);
 
 
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
@@ -159,7 +158,7 @@ class DigredFrame extends Frame {
             schema = schema.withCommonApplied();
 //            logSchema(schema);
 
-            this.panelMain = DigredMainPanel.create(new DigredModel(schema), this.datastore);
+            this.panelMain = DigredMainPanel.create(this, new DigredModel(schema), this.datastore);
             add(this.panelMain);
             updateFileMenu();
 

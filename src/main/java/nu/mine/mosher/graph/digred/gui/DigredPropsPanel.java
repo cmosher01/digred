@@ -3,14 +3,14 @@ package nu.mine.mosher.graph.digred.gui;
 import nu.mine.mosher.graph.digred.datastore.DataStore;
 import nu.mine.mosher.graph.digred.util.Tracer;
 import org.slf4j.*;
-import org.slf4j.Logger;
 
 import java.awt.*;
-import java.util.*;
+import java.util.Objects;
 
 public class DigredPropsPanel extends Panel implements ViewUpdater {
     private static final Logger LOG = LoggerFactory.getLogger(DigredPropsPanel.class);
 
+    private final Frame owner;
     private final DigredModel model;
     private final DataStore datastore;
     private final ViewUpdater updater;
@@ -18,11 +18,18 @@ public class DigredPropsPanel extends Panel implements ViewUpdater {
     private DigredLinksPanel links;
     private Container filler;
 
-    public static DigredPropsPanel create(final DigredModel model, final DataStore datastore, final ViewUpdater updater) {
+    public static DigredPropsPanel create(final Frame owner, final DigredModel model, final DataStore datastore, final ViewUpdater updater) {
         Tracer.trace("DigredPropsPanel: create");
-        final var panel = new DigredPropsPanel(model, datastore, updater);
+        final var panel = new DigredPropsPanel(owner, model, datastore, updater);
         panel.init();
         return panel;
+    }
+
+    private DigredPropsPanel(final Frame owner, final DigredModel model, final DataStore datastore, final ViewUpdater updater) {
+        this.owner = owner;
+        this.model = model;
+        this.datastore = datastore;
+        this.updater = updater;
     }
 
     public void init() {
@@ -60,7 +67,7 @@ public class DigredPropsPanel extends Panel implements ViewUpdater {
             add(this.form);
 
             if (ident.type().vertex()) {
-                this.links = DigredLinksPanel.create(this.model, this.datastore, this.updater, ident);
+                this.links = DigredLinksPanel.create(this.owner, this.model, this.datastore, this.updater, ident);
                 layoutManager.setConstraints(this.links, cns);
                 add(this.links);
             }
@@ -73,11 +80,5 @@ public class DigredPropsPanel extends Panel implements ViewUpdater {
             add(this.filler);
         }
         validate();
-    }
-
-    private DigredPropsPanel(DigredModel model, DataStore datastore, ViewUpdater updater) {
-        this.model = model;
-        this.datastore = datastore;
-        this.updater = updater;
     }
 }

@@ -1,23 +1,18 @@
 package nu.mine.mosher.graph.digred.gui;
 
 import nu.mine.mosher.graph.digred.datastore.DataStore;
-import nu.mine.mosher.graph.digred.schema.Edge;
-import nu.mine.mosher.graph.digred.schema.Vertex;
+import nu.mine.mosher.graph.digred.schema.*;
 import nu.mine.mosher.graph.digred.util.Tracer;
-import org.neo4j.driver.Query;
 import org.neo4j.driver.Record;
-import org.neo4j.driver.Values;
+import org.neo4j.driver.*;
 
+import java.awt.List;
 import java.awt.*;
 import java.awt.event.ActionEvent;
-import java.util.ArrayList;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-
-import static nu.mine.mosher.graph.digred.gui.DigredPropsForm.displayValueOf;
+import java.util.*;
 
 public class DigredLinksPanel extends Container {
+    private final Frame owner;
     private final DigredModel model;
     private final DataStore datastore;
     private final ViewUpdater updater;
@@ -26,15 +21,16 @@ public class DigredLinksPanel extends Container {
     private java.util.List<DigredEntityIdent> links;
     private final java.util.List<Button> buttons = new ArrayList<>();
 
-    public static DigredLinksPanel create(final DigredModel model, final DataStore datastore, final ViewUpdater updater, final DigredEntityIdent ident) {
+    public static DigredLinksPanel create(final Frame owner, final DigredModel model, final DataStore datastore, final ViewUpdater updater, final DigredEntityIdent ident) {
         Tracer.trace("DigredLinksPanel: create");
         Tracer.trace("    ident: "+ident);
-        final DigredLinksPanel panel = new DigredLinksPanel(model, datastore, updater, ident);
+        final DigredLinksPanel panel = new DigredLinksPanel(owner, model, datastore, updater, ident);
         panel.init();
         return panel;
     }
 
-    private DigredLinksPanel(final DigredModel model, final DataStore datastore, final ViewUpdater updater, final DigredEntityIdent ident) {
+    private DigredLinksPanel(final Frame owner, final DigredModel model, final DataStore datastore, final ViewUpdater updater, final DigredEntityIdent ident) {
+        this.owner = owner;
         this.model = model;
         this.datastore = datastore;
         this.updater = updater;
@@ -92,7 +88,7 @@ public class DigredLinksPanel extends Container {
 
     private void pressedAdd(final ActionEvent x, final Edge e, final boolean incoming) {
         final var vertexTarget = incoming ? e.tail() : e.head();
-        final Optional<Long> id = DigredChoosePopup.run(this.model, this.datastore, vertexTarget);
+        final Optional<Long> id = DigredChoosePopup.run(this.owner, this.datastore, vertexTarget);
         if (id.isPresent()) {
             Tracer.trace("ADD: "+x.paramString());
             createEdge(e, vertexTarget, id.get(), incoming);

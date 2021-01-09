@@ -1,8 +1,8 @@
 package nu.mine.mosher.graph.digred.gui;
 
 import ch.qos.logback.classic.*;
-import org.slf4j.*;
 import org.slf4j.Logger;
+import org.slf4j.*;
 
 import java.awt.*;
 import java.lang.reflect.InvocationTargetException;

@@ -3,8 +3,8 @@ package nu.mine.mosher.graph.digred.datastore;
 import nu.mine.mosher.graph.digred.schema.DataType;
 import org.neo4j.driver.*;
 import org.neo4j.driver.internal.types.TypeConstructor;
-import org.slf4j.*;
 import org.slf4j.Logger;
+import org.slf4j.*;
 
 import java.net.URI;
 import java.util.*;

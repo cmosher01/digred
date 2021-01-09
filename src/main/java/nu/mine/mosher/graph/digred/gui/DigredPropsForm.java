@@ -3,17 +3,15 @@ package nu.mine.mosher.graph.digred.gui;
 import nu.mine.mosher.graph.digred.datastore.DataStore;
 import nu.mine.mosher.graph.digred.schema.*;
 import nu.mine.mosher.graph.digred.util.Tracer;
-import org.neo4j.driver.Query;
 import org.neo4j.driver.Record;
-import org.neo4j.driver.Value;
-import org.neo4j.driver.Values;
+import org.neo4j.driver.*;
 import org.neo4j.driver.internal.types.TypeConstructor;
 import org.neo4j.driver.internal.value.NullValue;
 
 import java.awt.*;
 import java.awt.event.ActionEvent;
-import java.util.*;
 import java.util.List;
+import java.util.*;
 
 import static java.awt.FlowLayout.LEADING;
 

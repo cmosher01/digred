@@ -1,6 +1,6 @@
 package nu.mine.mosher.graph.digred.gui;
 
-import nu.mine.mosher.graph.digred.schema.*;
+import nu.mine.mosher.graph.digred.schema.Entity;
 
 import java.util.Optional;
 
