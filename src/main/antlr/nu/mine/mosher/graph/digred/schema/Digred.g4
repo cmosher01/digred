@@ -53,7 +53,8 @@ prop returns [Prop p]
 
 
 
-TYPE : 'INTEGER' | 'FLOAT' | 'STRING' | 'TEXT' | 'BOOLEAN' | 'DATE' | 'TIME' | 'DATETIME' | 'DURATION' | 'UUID' ;
+TYPE : 'INTEGER' | 'FLOAT' | 'STRING' | 'TEXT' | 'BOOLEAN' | 'DATE' | 'TIME' | 'DATETIME' | 'DURATION' | 'UUID' |
+       '_DIGRED_PK' | '_DIGRED_VERSION' | '_DIGRED_CREATED' | '_DIGRED_MODIFIED' | '_DIGRED_NAME';
 
 ID : [A-Za-z0-9_]+ ;
 

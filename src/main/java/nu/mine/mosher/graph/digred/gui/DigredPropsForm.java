@@ -145,7 +145,7 @@ public class DigredPropsForm extends Container {
 
 
 
-                final var value = node.get(filterDigredKeyName(prop.key()));
+                final var value = node.get(prop.key());
                 this.valuesOrig.add(value);
 
                 final Component ctrlProp;
@@ -281,13 +281,13 @@ public class DigredPropsForm extends Container {
         boolean hasModified = false;
         for (int i = 0; i < props.size(); ++i) {
             final var prop = props.get(i);
-            if (prop.key().equals("_digred_version")) {
+            if (prop.type() == DataType._DIGRED_VERSION) {
                 hasVersion = true;
-            } else if (prop.key().equals("_digred_modified")) {
+            } else if (prop.type() == DataType._DIGRED_MODIFIED) {
                 hasModified = true;
-            } else if (prop.key().equals("_digred_created")) {
+            } else if (prop.type() == DataType._DIGRED_CREATED) {
                 // ignore
-            } else if (prop.key().equals("_digred_pk")) {
+            } else if (prop.type() == DataType._DIGRED_PK) {
                 // ignore
             } else {
                 final var valueOrig = this.valuesOrig.get(i);
@@ -304,11 +304,11 @@ public class DigredPropsForm extends Container {
                     }
                 };
                 if (!valueNew.equals(valueOrig)) {
-                    System.err.println("detected change: " + prop.key() + ": " + valueOrig + " --> " + valueNew);
+                    Tracer.trace("detected change: " + prop.key() + ": " + valueOrig + " --> " + valueNew);
                     if (valueNew.isNull()) {
-                        cyRemoves.add("n." + filterDigredKeyName(prop.key()));
+                        cyRemoves.add("n." + prop.key());
                     } else {
-                        params.put(filterDigredKeyName(prop.key()), valueNew);
+                        params.put(prop.key(), valueNew);
                     }
                 }
             }
@@ -335,10 +335,6 @@ public class DigredPropsForm extends Container {
         }
 
         this.updater.updateViewFromModel(this.ident);
-    }
-
-    private static String filterDigredKeyName(final String key) {
-        return DigraphSchema.filteredKeyword(key);
     }
 
     private static boolean canConvert(final Value value) {
@@ -386,11 +382,14 @@ public class DigredPropsForm extends Container {
         return "[cannot convert value of type "+value.type().name()+" for display]";
     }
 
+    private static final Set<DataType> setReadOnly = Set.of(
+        DataType._DIGRED_PK,
+        DataType._DIGRED_CREATED,
+        DataType._DIGRED_MODIFIED,
+        DataType._DIGRED_VERSION
+    );
+
     private static boolean readonly(final Prop prop) {
-        return
-            prop.key().equals("_digred_pk") ||
-            prop.key().equals("_digred_created") ||
-            prop.key().equals("_digred_modified") ||
-            prop.key().equals("_digred_version");
+        return setReadOnly.contains(prop.type());
     }
 }

@@ -23,20 +23,18 @@ public class Digred {
     }
 
     public static void main(final String... args) {
-        DigredGui gui = null;
         try {
             initLogging();
             LOG.info("version: {}", new DigredVersion().version());
-            gui = DigredGui.create();
+
+            DigredGui.create().waitForEventThread();
+
+            LOG.info("Main application shutdown is complete.");
         } catch (final Throwable e) {
             logProgramTermination(e);
         } finally {
             System.out.flush();
             System.err.flush();
-        }
-        if (Objects.nonNull(gui)) {
-            gui.waitForEventThread();
-            LOG.info("Main application shutdown is complete.");
         }
     }
 

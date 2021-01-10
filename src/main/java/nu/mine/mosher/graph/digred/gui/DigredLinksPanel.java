@@ -93,7 +93,7 @@ public class DigredLinksPanel extends Container {
             Tracer.trace("ADD: "+x.paramString());
             createEdge(e, vertexTarget, id.get(), incoming);
         } else {
-            System.out.println("cancel adding relationship");
+            Tracer.trace("cancel adding relationship");
         }
     }
 
@@ -101,15 +101,7 @@ public class DigredLinksPanel extends Container {
         final var typeEntity = this.ident.type();
         final long idEntity = this.ident.id().get();
 
-        final var cyProps = new ArrayList<String>();
-        e.props().forEach(prop -> {
-            switch (prop.key()) {
-                case "_digred_pk" -> cyProps.add("pk: apoc.create.uuid()");
-                case "_digred_version" -> cyProps.add("version: 1");
-                case "_digred_created" -> cyProps.add("created: datetime.realtime()");
-                case "_digred_modified" -> cyProps.add("modified: datetime.realtime()");
-            }
-        });
+        final var cyProps = DataStore.digredCypherProps(e);
 
         final Map<String,Object> params = Map.of(
             "idTail", incoming ? idEntityThat : idEntity,

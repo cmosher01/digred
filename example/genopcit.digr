@@ -18,16 +18,16 @@ _digred_common # properties common to all vertices and edges
     to identify almost all entities
     */
 
-    _digred_pk:UUID
-    _digred_version:INTEGER /* >= 1, incremented upon modification */
+    pk:_DIGRED_PK
+    version:_DIGRED_VERSION /* >= 1, incremented upon modification */
 
-    _digred_created:DATETIME
-    _digred_modified:DATETIME /* last modified timestamp */
+    created:_DIGRED_CREATED
+    modified:_DIGRED_MODIFIED /* last modified timestamp */
 
-    _digred_name:STRING /* short name for the entity;
+    name:_DIGRED_NAME /* short name for the entity;
             used to show entity in displayed lists, which will sort by this */
 
-    category:STRING /* optional enum-style category; used, for example, to group entities by */
+    category:STRING /* optional enum-style category; used, for example, to group entities */
     description:STRING /* complete long description of the entity */
     notes:TEXT /* any unstructured notes regarding the entity */
 
@@ -61,14 +61,6 @@ Transform TO Place
 
 
 # --------------------
-# SOURCES
-
-Citation
-Citation CITES Citation
-
-
-
-# --------------------
 # EXTRACTIONS
 
 Event
@@ -81,9 +73,17 @@ Event WAS_AT Place
     certainty:INTEGER
 
 Persona
-Persona CITES Citation
 Persona HAD_ROLE_IN Event
     certainty:INTEGER
+
+
+
+# --------------------
+# SOURCES
+
+Citation
+Citation CITES Citation
+Citation MENTIONS Persona
 
 
 
@@ -95,4 +95,4 @@ Sameness IS Persona
     certainty:INTEGER
 
 Investigation
-Sameness ASSERTED_BY Investigation
+Investigation ASSERTS Sameness

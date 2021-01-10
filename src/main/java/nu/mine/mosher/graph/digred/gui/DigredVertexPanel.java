@@ -106,15 +106,7 @@ public class DigredVertexPanel extends Panel implements ViewUpdater {
         Tracer.trace("NEW: "+e.paramString());
         final var entity = this.ident.type();
         if (entity.vertex()) {
-            final var cyProps = new ArrayList<String>();
-            entity.props().forEach(prop -> {
-                switch (prop.key()) {
-                    case "_digred_pk" -> cyProps.add("pk: apoc.create.uuid()");
-                    case "_digred_version" -> cyProps.add("version: 1");
-                    case "_digred_created" -> cyProps.add("created: datetime.realtime()");
-                    case "_digred_modified" -> cyProps.add("modified: datetime.realtime()");
-                }
-            });
+            final var cyProps = DataStore.digredCypherProps(entity);
 
             final var query = new Query(String.format(
                 "CREATE (n:%s { %s }) RETURN ID(n) as id",

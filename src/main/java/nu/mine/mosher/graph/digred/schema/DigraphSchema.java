@@ -7,24 +7,16 @@ import java.util.stream.Collectors;
 public record DigraphSchema (
     List<Entity> e
 ) {
-    // TODO
-    //     _digred_USE_FIELD
-    //
-    // where USE is pk, modified, created, version, name
-    // and FIELD is the actual field name
-    //
-    // That is to say, field names are treated as normal
-    // names, unless they start with an underscore, in
-    // which case they are of the following form:
-    //
-    //     '_' APP '_' USE '_' FIELD
-    //
-    // Or...
-    //
-    // Just make these datatypes: _DIGRED_PK, _DIGRED_NAME, etc.
-    //
-    public static final String DIGRED_PREFIX = "_digred_";
-    public static final String DIGRED_COMMON = DIGRED_PREFIX +"common";
+
+    // datatypes that start with _DIGRED_ are handled specially by digred application
+    private static final String DIGRED_PREFIX = "_DIGRED_";
+    private static final String DIGRED_COMMON = DIGRED_PREFIX +"COMMON";
+
+    public static boolean common(final String label) {
+        return label.equalsIgnoreCase(DigraphSchema.DIGRED_COMMON);
+    }
+
+
 
     public void decompile(final PrintWriter out) {
         e().forEach(entity -> {
@@ -56,13 +48,6 @@ public record DigraphSchema (
             collect(Collectors.toUnmodifiableList());
 
         return new DigraphSchema(vs);
-    }
-
-    public static String filteredKeyword(final String rawKeyword) {
-        return rawKeyword.substring(
-            rawKeyword.startsWith(DigraphSchema.DIGRED_PREFIX)
-                ? DigraphSchema.DIGRED_PREFIX.length()
-                : 0);
     }
 
     public Map<Vertex,List<Edge>> edgesOut() {

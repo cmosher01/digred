@@ -1,6 +1,6 @@
 package nu.mine.mosher.graph.digred.datastore;
 
-import nu.mine.mosher.graph.digred.schema.DataType;
+import nu.mine.mosher.graph.digred.schema.*;
 import org.neo4j.driver.*;
 import org.neo4j.driver.internal.types.TypeConstructor;
 import org.slf4j.Logger;
@@ -49,5 +49,19 @@ public class DataStore {
 
     public Session session() {
         return this.database.session();
+    }
+
+
+    public static ArrayList<String> digredCypherProps(final Entity e) {
+        final var cyProps = new ArrayList<String>();
+        e.props().forEach(prop -> {
+            switch (prop.type()) {
+                case _DIGRED_PK -> cyProps.add("pk: apoc.create.uuid()");
+                case _DIGRED_VERSION -> cyProps.add("version: 1");
+                case _DIGRED_CREATED -> cyProps.add("created: datetime.realtime()");
+                case _DIGRED_MODIFIED -> cyProps.add("modified: datetime.realtime()");
+            }
+        });
+        return cyProps;
     }
 }

@@ -2,8 +2,6 @@ package nu.mine.mosher.graph.digred.schema;
 
 import java.io.PrintWriter;
 
-import static nu.mine.mosher.graph.digred.schema.DigraphSchema.filteredKeyword;
-
 public record Prop(
     String key,
     DataType type
@@ -15,6 +13,6 @@ public record Prop(
     }
 
     public String display() {
-        return filteredKeyword(key())+" : "+type();
+        return key()+" : "+type();
     }
 }

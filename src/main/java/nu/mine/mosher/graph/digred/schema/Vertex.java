@@ -11,7 +11,7 @@ public record Vertex (
 implements Entity {
     @Override
     public boolean common() {
-        return label().equals(DigraphSchema.DIGRED_COMMON);
+        return DigraphSchema.common(label());
     }
 
     @Override
