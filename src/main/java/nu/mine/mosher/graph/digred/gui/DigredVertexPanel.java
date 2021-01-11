@@ -12,8 +12,6 @@ import java.awt.*;
 import java.awt.event.*;
 import java.util.*;
 
-import static nu.mine.mosher.graph.digred.gui.DigredPropsForm.displayValueOf;
-
 public class DigredVertexPanel extends Panel implements ViewUpdater {
     private static final Logger LOG = LoggerFactory.getLogger(DigredVertexPanel.class);
 
@@ -106,7 +104,7 @@ public class DigredVertexPanel extends Panel implements ViewUpdater {
         Tracer.trace("NEW: "+e.paramString());
         final var entity = this.ident.type();
         if (entity.vertex()) {
-            final var cyProps = DataStore.digredCypherProps(entity);
+            final var cyProps = DigredDataConverter.digredCypherProps(entity);
 
             final var query = new Query(String.format(
                 "CREATE (n:%s { %s }) RETURN ID(n) as id",
@@ -146,11 +144,12 @@ public class DigredVertexPanel extends Panel implements ViewUpdater {
             final Vertex vertex = (Vertex)entity;
 //            if (this.model.search.isBlank()) {
 //            "CASE exists(n.name) WHEN true THEN n.name ELSE n.modified+' '+labels(n)[0]+'['+ID(n)+']' END";
-                query = new Query(
+            final var propMod = vertex.propOf(DataType._DIGRED_MODIFIED);
+            query = new Query(
                     String.format(
                         "MATCH (n:%s) " +
-                        "RETURN n {.pk, .modified, .name }, ID(n) AS id " +
-                        "ORDER BY n.modified DESC " +
+                        "RETURN n, ID(n) AS id " +
+                        (propMod.isPresent() ? "ORDER BY n."+propMod.get().key()+" DESC " : "") +
                         "LIMIT 100",
                     vertex.typename()));
 //            } else {
@@ -159,14 +158,15 @@ public class DigredVertexPanel extends Panel implements ViewUpdater {
 //            }
         } else {
             final Edge edge = (Edge)entity;
+            final var propMod = edge.propOf(DataType._DIGRED_MODIFIED);
             query = new Query(
                 String.format(
                     "MATCH (tail:%s)-[n:%s]->(head:%s) "+
                     "RETURN " +
-                        "tail {.pk, .modified, .name}, ID(tail) AS idTail, " +
-                        "head {.pk, .modified, .name}, ID(head) AS idHead, " +
-                        "n {.pk, .modified, .name}, ID(n) AS id "+
-                    "ORDER BY n.modified DESC "+
+                        "tail, ID(tail) AS idTail, " +
+                        "head, ID(head) AS idHead, " +
+                        "n, ID(n) AS id "+
+                        (propMod.isPresent() ? "ORDER BY n."+propMod.get().key()+" DESC " : "") +
                     "LIMIT 100",
                 edge.tail().typename(),
                 edge.typename(),
@@ -225,12 +225,20 @@ public class DigredVertexPanel extends Panel implements ViewUpdater {
         if (entity.vertex()) {
             final var e = (Vertex)entity;
             final var props = r.get("n").asMap(Values.ofValue());
-            var ts = displayValueOf(props.get("modified"));
+            final var propMod = e.propOf(DataType._DIGRED_MODIFIED);
+            String ts = "";
+            if (propMod.isPresent()) {
+                ts = DigredDataConverter.displayValueOf(props.get(propMod.get().key()));
+            }
             if (!ts.isEmpty()) {
                 ts = ts+": ";
             }
 
-            var name = props.get("name");
+            final var propName = e.propOf(DataType._DIGRED_NAME);
+            Value name = null;
+            if (propName.isPresent()) {
+                name = props.get(propName.get().key());
+            }
             if (Objects.nonNull(name) && !name.isNull() && !name.isEmpty()) {
                 return name.asString();
             }
@@ -239,21 +247,38 @@ public class DigredVertexPanel extends Panel implements ViewUpdater {
             final var e = (Edge)entity;
             final var props = r.get("n").asMap(Values.ofValue());
 
-            final String ts;
+            String ts;
             final String rel;
-            var name = props.get("name");
+            final var propName = e.propOf(DataType._DIGRED_NAME);
+            Value name = null;
+            if (propName.isPresent()) {
+                name = props.get(propName.get().key());
+            }
             if (Objects.nonNull(name) && !name.isNull() && !name.isEmpty()) {
                 ts = "";
                 rel = name.asString();
             } else {
-                ts = displayValueOf(props.get("modified"))+": ";
+                final var propMod = e.propOf(DataType._DIGRED_MODIFIED);
+                ts = "";
+                if (propMod.isPresent()) {
+                    ts = DigredDataConverter.displayValueOf(props.get(propMod.get().key()));
+                }
+                if (!ts.isEmpty()) {
+                    ts = ts+": ";
+                }
+
+
                 rel = e.display(r.get("id").asLong());
             }
 
             final String tail;
             {
                 final var propsT = r.get("tail").asMap(Values.ofValue());
-                var nameT = propsT.get("name");
+                final var propNameT = e.tail().propOf(DataType._DIGRED_NAME);
+                Value nameT = null;
+                if (propNameT.isPresent()) {
+                    nameT = propsT.get(propNameT.get().key());
+                }
                 if (Objects.nonNull(nameT) && !nameT.isNull() && !nameT.isEmpty()) {
                     tail = nameT.asString();
                 } else {
@@ -263,7 +288,11 @@ public class DigredVertexPanel extends Panel implements ViewUpdater {
             final String head;
             {
                 final var propsT = r.get("head").asMap(Values.ofValue());
-                var nameT = propsT.get("name");
+                final var propNameT = e.head().propOf(DataType._DIGRED_NAME);
+                Value nameT = null;
+                if (propNameT.isPresent()) {
+                    nameT = propsT.get(propNameT.get().key());
+                }
                 if (Objects.nonNull(nameT) && !nameT.isNull() && !nameT.isEmpty()) {
                     head = nameT.asString();
                 } else {

@@ -1,7 +1,7 @@
 package nu.mine.mosher.graph.digred.gui;
 
 import nu.mine.mosher.graph.digred.datastore.DataStore;
-import nu.mine.mosher.graph.digred.schema.Entity;
+import nu.mine.mosher.graph.digred.schema.*;
 import org.neo4j.driver.Record;
 import org.neo4j.driver.*;
 
@@ -109,9 +109,10 @@ public class DigredChoosePopup extends Dialog {
         final Entity vertex = this.vertexChoose;
         final Query query;
 //        if (this.search.isBlank()) {
+            final var propMod = vertex.propOf(DataType._DIGRED_MODIFIED);
             query = new Query(String.format("MATCH (n:%s) " +
-                    "RETURN n {.pk, .modified, .name }, ID(n) AS id " +
-                    "ORDER BY n.modified DESC "+
+                    "RETURN n, ID(n) AS id " +
+                    (propMod.isPresent() ? "ORDER BY n."+propMod.get().key()+" DESC " : "") +
                     "LIMIT 100",
                 vertex.typename()));
 //        } else {

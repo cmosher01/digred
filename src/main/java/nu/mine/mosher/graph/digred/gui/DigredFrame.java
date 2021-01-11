@@ -155,7 +155,7 @@ class DigredFrame extends Frame {
 
             DigraphSchema schema = ctx.scm;
             logSchema(schema);
-            schema = schema.withCommonApplied();
+            schema.applyCommon();
 //            logSchema(schema);
 
             this.panelMain = DigredMainPanel.create(this, new DigredModel(schema), this.datastore);

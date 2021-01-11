@@ -15,11 +15,8 @@ implements Entity {
     }
 
     @Override
-    public Vertex withExtraProps(List<Prop> props) {
-        props = new ArrayList<>(props);
-        props.addAll(props());
-        props = List.copyOf(props);
-        return new Vertex(label(), props);
+    public void addExtraProps(List<Prop> props) {
+        props().addAll(props);
     }
 
     @Override
@@ -61,5 +58,15 @@ implements Entity {
     @Override
     public int hashCode() {
         return Objects.hash(label());
+    }
+
+    @Override
+    public Optional<Prop> propOf(final DataType dataType) {
+        for (final Prop p : props()) {
+            if (p.type() == dataType) {
+                return Optional.of(p);
+            }
+        }
+        return  Optional.empty();
     }
 }

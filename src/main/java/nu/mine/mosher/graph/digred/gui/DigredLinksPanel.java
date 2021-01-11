@@ -19,7 +19,6 @@ public class DigredLinksPanel extends Container {
     private final DigredEntityIdent ident;
     private List listboxLinks;
     private java.util.List<DigredEntityIdent> links;
-    private final java.util.List<Button> buttons = new ArrayList<>();
 
     public static DigredLinksPanel create(final Frame owner, final DigredModel model, final DataStore datastore, final ViewUpdater updater, final DigredEntityIdent ident) {
         Tracer.trace("DigredLinksPanel: create");
@@ -67,7 +66,6 @@ public class DigredLinksPanel extends Container {
         this.model.edgesOut.get(vertex).forEach(e -> {
             final var b = new Button("Add   "+e.display("this", "", ""));
             b.addActionListener(x -> pressedAdd(x, e, false));
-            this.buttons.add(b);
             layout.setConstraints(b, cns);
             add(b);
         });
@@ -75,7 +73,6 @@ public class DigredLinksPanel extends Container {
         this.model.edgesIn.get(vertex).forEach(e -> {
             final var b = new Button("Add   "+e.display("", "", "this"));
             b.addActionListener(x -> pressedAdd(x, e, true));
-            this.buttons.add(b);
             layout.setConstraints(b, cns);
             add(b);
         });
@@ -101,7 +98,7 @@ public class DigredLinksPanel extends Container {
         final var typeEntity = this.ident.type();
         final long idEntity = this.ident.id().get();
 
-        final var cyProps = DataStore.digredCypherProps(e);
+        final var cyProps = DigredDataConverter.digredCypherProps(e);
 
         final Map<String,Object> params = Map.of(
             "idTail", incoming ? idEntityThat : idEntity,
@@ -154,17 +151,26 @@ public class DigredLinksPanel extends Container {
                 final var link = new DigredEntityIdent(type, rel.id());
                 this.links.add(link);
 
-                final var propsT = r.get("n").asMap(Values.ofValue());
-                var nameT = propsT.get("name");
+                final var typeHead = this.model.schema.of(head);
+                final var propsHead = r.get("n").asMap(Values.ofValue());
+                final Optional<Prop> pNameHead = typeHead.propOf(DataType._DIGRED_NAME);
+                Value nameH = null;
+                if (pNameHead.isPresent()) {
+                    nameH = propsHead.get(pNameHead.get().key());
+                }
                 String shead;
-                if (Objects.nonNull(nameT) && !nameT.isNull() && !nameT.isEmpty()) {
-                    shead = nameT.asString();
+                if (Objects.nonNull(nameH) && !nameH.isNull() && !nameH.isEmpty()) {
+                    shead = nameH.asString();
                 } else {
                     shead = type.head().display(r.get("idN").asLong());
                 }
 
-                final var propsR = r.get("r").asMap(Values.ofValue());
-                var nameR = propsR.get("name");
+                final var propsRel = r.get("r").asMap(Values.ofValue());
+                final Optional<Prop> pName = type.propOf(DataType._DIGRED_NAME);
+                Value nameR = null;
+                if (pName.isPresent()) {
+                    nameR = propsRel.get(pName.get().key());
+                }
                 String srel;
                 if (Objects.nonNull(nameR) && !nameR.isNull() && !nameR.isEmpty()) {
                     srel = nameR.asString();
@@ -196,8 +202,12 @@ public class DigredLinksPanel extends Container {
                 final var link = new DigredEntityIdent(type, rel.id());
                 this.links.add(link);
 
-                final var propsR = r.get("r").asMap(Values.ofValue());
-                var nameR = propsR.get("name");
+                final var propsRel = r.get("r").asMap(Values.ofValue());
+                final Optional<Prop> pName = type.propOf(DataType._DIGRED_NAME);
+                Value nameR = null;
+                if (pName.isPresent()) {
+                    nameR = propsRel.get(pName.get().key());
+                }
                 String srel;
                 if (Objects.nonNull(nameR) && !nameR.isNull() && !nameR.isEmpty()) {
                     srel = nameR.asString();
@@ -205,8 +215,13 @@ public class DigredLinksPanel extends Container {
                     srel = type.display(r.get("idR").asLong());
                 }
 
-                final var propsT = r.get("n").asMap(Values.ofValue());
-                var nameT = propsT.get("name");
+                final var typeTail = this.model.schema.of(tail);
+                final var propsTail = r.get("n").asMap(Values.ofValue());
+                final Optional<Prop> pNameTail = typeTail.propOf(DataType._DIGRED_NAME);
+                Value nameT = null;
+                if (pNameTail.isPresent()) {
+                    nameT = propsTail.get(pNameTail.get().key());
+                }
                 String stail;
                 if (Objects.nonNull(nameT) && !nameT.isNull() && !nameT.isEmpty()) {
                     stail = nameT.asString();

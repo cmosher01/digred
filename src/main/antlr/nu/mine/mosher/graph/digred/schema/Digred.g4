@@ -19,7 +19,7 @@ schema returns [DigraphSchema scm] locals [
         List<Entity> rE = new ArrayList<>(),
         Map<String, Vertex> mV = new HashMap<>()
     ]
-    : entity[$rE,$mV]* EOF { $scm = new DigraphSchema(List.copyOf($rE)); }
+    : entity[$rE,$mV]* EOF { $scm = new DigraphSchema($rE); }
     ;
 
 entity[List<Entity> rE, Map<String, Vertex> mV]
@@ -32,7 +32,7 @@ vertex returns [Vertex v]
     : label=ID NL props+=prop* {
         $v = new Vertex(
             $label.text,
-            $props.stream().map(p -> p.p).filter(Objects::nonNull).collect(Collectors.toUnmodifiableList()));
+            $props.stream().map(p -> p.p).filter(Objects::nonNull).collect(Collectors.toList()));
     }
     ;
 
@@ -40,7 +40,7 @@ edge[Map<String, Vertex> mV] returns [Edge e]
     : tail=ID type=ID head=ID NL props+=prop* {
         $e = new Edge(
             $type.text,
-            $props.stream().map(p -> p.p).filter(Objects::nonNull).collect(Collectors.toUnmodifiableList()),
+            $props.stream().map(p -> p.p).filter(Objects::nonNull).collect(Collectors.toList()),
             $mV.get($tail.text),
             $mV.get($head.text));
     }

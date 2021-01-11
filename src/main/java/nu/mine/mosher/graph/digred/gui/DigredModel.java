@@ -11,7 +11,7 @@ public class DigredModel {
 
     public DigredModel(final DigraphSchema schema) {
         this.schema = schema;
-        this.edgesIn = schema.edgesIn();
-        this.edgesOut = schema.edgesOut();
+        this.edgesIn = Map.copyOf(schema.edgesIn());
+        this.edgesOut = Map.copyOf(schema.edgesOut());
     }
 }

@@ -2,15 +2,11 @@ package nu.mine.mosher.graph.digred.schema;
 
 import java.io.PrintWriter;
 import java.util.*;
-import java.util.stream.Collectors;
 
 public record DigraphSchema (
     List<Entity> e
 ) {
-
-    // datatypes that start with _DIGRED_ are handled specially by digred application
-    private static final String DIGRED_PREFIX = "_DIGRED_";
-    private static final String DIGRED_COMMON = DIGRED_PREFIX +"COMMON";
+    private static final String DIGRED_COMMON = "_DIGRED_COMMON";
 
     public static boolean common(final String label) {
         return label.equalsIgnoreCase(DigraphSchema.DIGRED_COMMON);
@@ -30,27 +26,23 @@ public record DigraphSchema (
         });
     }
 
-    public DigraphSchema withCommonApplied() {
-        final var propsCommon = this.e.
-            stream().
-            filter(Entity::common).
-            findAny().
-            map(Entity::props).
-            orElse(Collections.emptyList());
-        if (propsCommon.isEmpty()) {
-            return this;
+    public void applyCommon() {
+        final var entityCommon = e().stream().filter(Entity::common).findAny();
+        if (entityCommon.isEmpty()) {
+            return;
         }
 
-        final var vs = this.e.
-            stream().
-            filter(v -> !v.common()).
-            map(v -> v.withExtraProps(propsCommon)).
-            collect(Collectors.toUnmodifiableList());
+        final var propsCommon = entityCommon.get().props();
+        if (propsCommon.isEmpty()) {
+            return;
+        }
 
-        return new DigraphSchema(vs);
-    }
+        e().remove(entityCommon.get());
 
-    public Map<Vertex,List<Edge>> edgesOut() {
+        e().forEach(e -> e.addExtraProps(propsCommon));
+   }
+
+    public HashMap<Vertex,List<Edge>> edgesOut() {
         final var map = new HashMap<Vertex, List<Edge>>();
         for (final var n : e()) {
             if (n.vertex()) {
@@ -64,10 +56,10 @@ public record DigraphSchema (
                 map.get(e.tail()).add(e);
             }
         }
-        return Map.copyOf(map);
+        return map;
     }
 
-    public Map<Vertex,List<Edge>> edgesIn() {
+    public HashMap<Vertex,List<Edge>> edgesIn() {
         final var map = new HashMap<Vertex, List<Edge>>();
         for (final var n : e()) {
             if (n.vertex()) {
@@ -81,7 +73,7 @@ public record DigraphSchema (
                 map.get(e.head()).add(e);
             }
         }
-        return Map.copyOf(map);
+        return map;
     }
 
     public Edge of(final String type, final String tail, final String head) {

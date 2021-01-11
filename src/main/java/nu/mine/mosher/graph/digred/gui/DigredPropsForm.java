@@ -5,8 +5,6 @@ import nu.mine.mosher.graph.digred.schema.*;
 import nu.mine.mosher.graph.digred.util.Tracer;
 import org.neo4j.driver.Record;
 import org.neo4j.driver.*;
-import org.neo4j.driver.internal.types.TypeConstructor;
-import org.neo4j.driver.internal.value.NullValue;
 
 import java.awt.*;
 import java.awt.event.ActionEvent;
@@ -16,26 +14,21 @@ import java.util.*;
 import static java.awt.FlowLayout.LEADING;
 
 public class DigredPropsForm extends Container {
-    private final DigredModel model;
     private final DataStore datastore;
     private final ViewUpdater updater;
     private final List<Component> fields = new ArrayList<>(16);
-    private List<Value> valuesOrig = new ArrayList<>(16);
-    private Button buttonSave;
-    private Button buttonCancel;
-    private Button buttonDelete;
+    private final List<Value> valuesOrig = new ArrayList<>(16);
     private final DigredEntityIdent ident;
 
-    public static DigredPropsForm create(final DigredModel model, final DataStore datastore, final ViewUpdater updater, final DigredEntityIdent ident) {
+    public static DigredPropsForm create(final DataStore datastore, final ViewUpdater updater, final DigredEntityIdent ident) {
         Tracer.trace("DigredPropsForm: create");
         Tracer.trace("    ident: "+ident);
-        final DigredPropsForm form = new DigredPropsForm(model, datastore, updater, ident);
+        final DigredPropsForm form = new DigredPropsForm(datastore, updater, ident);
         form.init();
         return form;
     }
 
-    private DigredPropsForm(final DigredModel model, final DataStore datastore, final ViewUpdater updater, final DigredEntityIdent ident) {
-        this.model = model;
+    private DigredPropsForm(final DataStore datastore, final ViewUpdater updater, final DigredEntityIdent ident) {
         this.datastore = datastore;
         this.updater = updater;
         this.ident = ident;
@@ -72,11 +65,16 @@ public class DigredPropsForm extends Container {
             final var e = (Edge)typeEntity;
 
             final var tail = rec.get("tail").asNode();
-            final var vertexTail = this.model.schema.of(tail.labels().iterator().next());
+            final var vertexTail = e.tail();
             final var labelTail = new Button();
             String stail;
             final var propsT = tail.asMap(Values.ofValue());
-            var nameT = propsT.get("name");
+            final var propNameT = vertexTail.propOf(DataType._DIGRED_NAME);
+
+            Value nameT = null;
+            if (propNameT.isPresent()) {
+                nameT = propsT.get(propNameT.get().key());
+            }
             if (Objects.nonNull(nameT) && !nameT.isNull() && !nameT.isEmpty()) {
                 stail = nameT.asString();
             } else {
@@ -92,11 +90,16 @@ public class DigredPropsForm extends Container {
             p.add(labelNode);
 
             final var head = rec.get("head").asNode();
-            final var vertexHead = this.model.schema.of(head.labels().iterator().next());
+            final var vertexHead = e.head();
             final var labelHead = new Button();
             String shead;
             final var propsH = head.asMap(Values.ofValue());
-            var nameH = propsH.get("name");
+            final var propNameH = vertexHead.propOf(DataType._DIGRED_NAME);
+
+            Value nameH = null;
+            if (propNameH.isPresent()) {
+                nameH = propsH.get(propNameH.get().key());
+            }
             if (Objects.nonNull(nameH) && !nameH.isNull() && !nameH.isEmpty()) {
                 shead = nameH.asString();
             } else {
@@ -145,34 +148,17 @@ public class DigredPropsForm extends Container {
 
 
 
-                final var value = node.get(prop.key());
-                this.valuesOrig.add(value);
+                final var val = node.get(prop.key());
+                this.valuesOrig.add(val);
 
-                final Component ctrlProp;
-                switch (prop.type()) {
-                    case TEXT -> {
-                        final TextArea t = new TextArea(displayValueOf(value));
-                        t.setEditable(!readonly(prop) && canConvert(value));
-                        ctrlProp = t;
-                    }
-                    case BOOLEAN -> {
-                        final Checkbox c = new Checkbox(prop.key(), value.isNull() ? false : value.asBoolean());
-                        c.setEnabled(!readonly(prop) && canConvert(value));
-                        ctrlProp = c;
-                    }
-                    default -> {
-                        final TextField t = new TextField(displayValueOf(value));
-                        t.setEditable(!readonly(prop) && canConvert(value));
-                        ctrlProp = t;
-                    }
-                }
-                this.fields.add(ctrlProp);
+                final Component cmp = DigredDataConverter.componentOfValue(val, prop);
+                this.fields.add(cmp);
 
                 lay2.gridx = 1;
                 lay2.weightx = 1.0D;
                 lay2.fill = GridBagConstraints.HORIZONTAL;
-                layout2.setConstraints(ctrlProp, lay2);
-                p.add(ctrlProp);
+                layout2.setConstraints(cmp, lay2);
+                p.add(cmp);
             });
         }
         lay.weightx = 1.0D;
@@ -184,15 +170,15 @@ public class DigredPropsForm extends Container {
 
         final var b = new Container();
         b.setLayout(new FlowLayout());
-        this.buttonDelete = new Button("Delete");
-        this.buttonDelete.addActionListener(this::pressedDelete);
-        b.add(this.buttonDelete);
-        this.buttonCancel = new Button("Cancel");
-        this.buttonCancel.addActionListener(this::pressedCancel);
-        b.add(this.buttonCancel);
-        this.buttonSave = new Button("Save");
-        this.buttonSave.addActionListener(this::pressedSave);
-        b.add(this.buttonSave);
+        final var buttonDelete = new Button("Delete");
+        buttonDelete.addActionListener(this::pressedDelete);
+        b.add(buttonDelete);
+        final var buttonCancel = new Button("Cancel");
+        buttonCancel.addActionListener(this::pressedCancel);
+        b.add(buttonCancel);
+        final var buttonSave = new Button("Save");
+        buttonSave.addActionListener(this::pressedSave);
+        b.add(buttonSave);
         layout.setConstraints(b, lay);
         add(b);
     }
@@ -259,10 +245,7 @@ public class DigredPropsForm extends Container {
             final var prop = props.get(i);
             final var valueOrig = this.valuesOrig.get(i);
             final var cmp = this.fields.get(i);
-            switch (prop.type()) {
-                case BOOLEAN -> ((Checkbox)cmp).setState(valueOrig.isNull() ? false : valueOrig.asBoolean());
-                default -> ((TextComponent)cmp).setText(displayValueOf(valueOrig));
-            }
+            DigredDataConverter.setComponentValue(valueOrig, prop, cmp);
         }
     }
 
@@ -277,52 +260,33 @@ public class DigredPropsForm extends Container {
 
         final var cyRemoves = new ArrayList<String>();
         final var params = new HashMap<String, Object>();
-        boolean hasVersion = false;
-        boolean hasModified = false;
         for (int i = 0; i < props.size(); ++i) {
             final var prop = props.get(i);
-            if (prop.type() == DataType._DIGRED_VERSION) {
-                hasVersion = true;
-            } else if (prop.type() == DataType._DIGRED_MODIFIED) {
-                hasModified = true;
-            } else if (prop.type() == DataType._DIGRED_CREATED) {
-                // ignore
-            } else if (prop.type() == DataType._DIGRED_PK) {
-                // ignore
-            } else {
-                final var valueOrig = this.valuesOrig.get(i);
-                final var cmp = this.fields.get(i);
-                final Value valueNew = switch (prop.type()) {
-                    // TODO handle invalid format
-                    case INTEGER -> Values.value(Long.parseLong(((TextComponent)cmp).getText(),10));
-                    case FLOAT -> Values.value(Double.parseDouble(((TextComponent)cmp).getText()));
-                    case BOOLEAN -> Values.value(((Checkbox)cmp).getState());
-                    // TODO other types
-                    default -> {
-                        final var t = ((TextComponent)cmp).getText();
-                        yield t.isEmpty() ? NullValue.NULL : Values.value(t);
-                    }
-                };
-                if (!valueNew.equals(valueOrig)) {
-                    Tracer.trace("detected change: " + prop.key() + ": " + valueOrig + " --> " + valueNew);
-                    if (valueNew.isNull()) {
+            if (!DigredDataConverter.readonly(prop)) {
+                final var valOrig = this.valuesOrig.get(i);
+                final var valNew = DigredDataConverter.valueOfComponent(this.fields.get(i), prop);
+                if (!valNew.equals(valOrig)) {
+                    Tracer.trace("detected change: " + prop.key() + ": " + valOrig + " --> " + valNew);
+                    if (valNew.isNull()) {
                         cyRemoves.add("n." + prop.key());
                     } else {
-                        params.put(prop.key(), valueNew);
+                        params.put(prop.key(), valNew);
                     }
                 }
             }
         }
 
         if (!cyRemoves.isEmpty() || !params.isEmpty()) {
+            final var propVersion = entity.propOf(DataType._DIGRED_VERSION);
+            final var propModified = entity.propOf(DataType._DIGRED_MODIFIED);
             final var query = new Query(
                 String.format(
                     entity.vertex()
                     ? "MATCH (n:%s) WHERE ID(n) = $id SET n += $map %s %s %s"
                     : "MATCH ()-[n:%s]-() WHERE ID(n) = $id SET n += $map %s %s %s",
                     entity.typename(),
-                    hasVersion ? ", n.version = n.version+1" : "",
-                    hasModified ? ", n.modified = datetime.realtime()" : "",
+                    propVersion.isPresent() ? ", n."+propVersion.get().key()+" = n."+propVersion.get().key()+"+1" : "",
+                    propModified.isPresent() ? ", n."+propModified.get().key()+" = datetime.realtime()" : "",
                     cyRemoves.isEmpty() ? "" : ("REMOVE " + String.join(",", cyRemoves))),
                 Map.of(
                     "id", this.ident.id().get(),
@@ -335,61 +299,5 @@ public class DigredPropsForm extends Container {
         }
 
         this.updater.updateViewFromModel(this.ident);
-    }
-
-    private static boolean canConvert(final Value value) {
-        return
-            TypeConstructor.STRING.covers(value) ||
-            TypeConstructor.INTEGER.covers(value) ||
-            TypeConstructor.FLOAT.covers(value) ||
-            TypeConstructor.DATE_TIME.covers(value) ||
-            TypeConstructor.BOOLEAN.covers(value) ||
-            TypeConstructor.NULL.covers(value);
-        /*
-            TODO: handle remaining datatypes:
-            DATE
-            TIME
-            LOCAL_TIME
-            LOCAL_DATE_TIME
-            DURATION
-            POINT
-         */
-    }
-
-    public static String displayValueOf(final Value value) {
-        if (Objects.isNull(value)) {
-            return "";
-        }
-        if (TypeConstructor.STRING.covers(value)) {
-            return value.asString();
-        }
-        if (TypeConstructor.INTEGER.covers(value)) {
-            return Long.toString(value.asLong(), 10);
-        }
-        if (TypeConstructor.FLOAT.covers(value)) {
-            return Double.toString(value.asDouble());
-        }
-        if (TypeConstructor.DATE_TIME.covers(value)) {
-            return value.asZonedDateTime().toString();
-        }
-        // In Neo4j, property values cannot be NULL; rather, the property simply wouldn't exist.
-        // However, a STRING property can exist and be empty.
-        // Currently we treat empty string as NULL
-        // TODO how to distinguish between NULL and empty string?
-        if (TypeConstructor.NULL.covers(value)) {
-            return "";
-        }
-        return "[cannot convert value of type "+value.type().name()+" for display]";
-    }
-
-    private static final Set<DataType> setReadOnly = Set.of(
-        DataType._DIGRED_PK,
-        DataType._DIGRED_CREATED,
-        DataType._DIGRED_MODIFIED,
-        DataType._DIGRED_VERSION
-    );
-
-    private static boolean readonly(final Prop prop) {
-        return setReadOnly.contains(prop.type());
     }
 }
