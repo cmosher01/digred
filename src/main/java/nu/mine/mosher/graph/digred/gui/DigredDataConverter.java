@@ -14,6 +14,55 @@ import java.util.*;
 // However, a STRING property can exist and be empty.
 // Currently we treat empty string as NULL
 // TODO Do we need to distinguish between NULL and empty string?
+
+/**
+ *
+ *  Logic for various data conversions, including display strings.
+ *
+ *
+ *
+ *  NOTES ON DISPLAY LOGIC:
+ *
+ *  ----------
+ *  Display of DATA TYPE names:
+ *
+ *  T1. dropdown types (node) "(:Persona)"
+ *  T2. dropdown types (relationship) "(:Persona)-[:HAD_ROLE_IN]->(:Event)"
+ *  T3. "Add" relationship link button "(this:Persona)-[add:HAD_ROLE_IN]->(:Event)"
+ *  T3. choose box type title (rel) (same as T3)
+ *
+ *  ----------
+ *  Display of ENTITY (node, relationship) names:
+ *
+ *  Areas in the GUI:
+ *  1. entity list (node/rel)
+ *  2. detail heading (node/rel)
+ *  3. list of links (rel)
+ *  4. link button (node)
+ *  5. choose box list (node)
+ *
+ *  When viewing a NODE:
+ *  N1. list of entities (NODE)
+ *  N2. header ID at top of entity detail form (NODE)
+ *  R3. list of links (REL)
+ *  N1. choose entity popup dialog (same as N1) (NODE)
+ *
+ *  When viewing a RELATIONSHIP:
+ *  R1. list of entities (REL)
+ *  R2. header ID at top of entity detail (REL)
+ *  N3. header buttons at top entity detail (NODE)
+ *
+ *  algorithms:
+ *  ("mod" = "last modification timestamp")
+ *  N1: if name is non-blank, then "name", else "mod: (:Type{ID:###})" (mod if available)
+ *  N2: "(this:Type{ID:###})"
+ *  N3: if name is non-blank, then "name", else "(:Type{ID:###})" (special case of N1)
+ *
+ *  R1: if name is non-blank, then "N3 - name -> N3", else "mod: N3 - [:TYPE{ID:###}] -> N3"
+ *  R2: "[this:TYPE{ID:###}]"
+ *  R3: "(this:Type) - RA -> N3" or "N3 - RA -> (this:Type)"
+ *  where RA: if name is non-blank, then "name", else "[:TYPE{ID:###}]"
+ */
 public class DigredDataConverter {
     public static ArrayList<String> digredCypherProps(final Entity e) {
         final var cyProps = new ArrayList<String>();

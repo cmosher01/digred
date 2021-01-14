@@ -1,9 +1,9 @@
 _digred_common
-    _digred_pk:UUID
-    _digred_version:INTEGER
-    _digred_created:DATETIME
-    _digred_modified:DATETIME
-    _digred_name:STRING
+    pk:_DIGRED_PK
+    version:_DIGRED_VERSION
+    created:_DIGRED_CREATED
+    modified:_DIGRED_MODIFIED
+    name:_DIGRED_NAME
 
 Test
     x:TEXT
