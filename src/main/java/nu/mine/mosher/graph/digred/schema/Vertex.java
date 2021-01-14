@@ -20,19 +20,6 @@ implements Entity {
     }
 
     @Override
-    public String display() {
-        return display("");
-    }
-
-    public String display(final String name) {
-        return "("+name+":"+label()+")";
-    }
-
-    public String display(final long id) {
-        return "(:"+label()+"{ID:"+id+"})";
-    }
-
-    @Override
     public boolean vertex() {
         return true;
     }

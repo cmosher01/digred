@@ -8,7 +8,6 @@ public interface Entity {
     boolean vertex();
     boolean common();
     void addExtraProps(List<Prop> props);
-    String display();
     String typename();
     void decompile(PrintWriter writer);
     Optional<Prop> propOf(DataType dataType);

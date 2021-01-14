@@ -10,7 +10,7 @@ import org.slf4j.*;
 
 import java.awt.*;
 import java.awt.event.*;
-import java.util.*;
+import java.util.ArrayList;
 
 public class DigredVertexPanel extends Panel implements ViewUpdater {
     private static final Logger LOG = LoggerFactory.getLogger(DigredVertexPanel.class);
@@ -47,7 +47,7 @@ public class DigredVertexPanel extends Panel implements ViewUpdater {
         lay.gridx = 0;
 
         this.choiceVertex = new Choice();
-        this.model.schema.e().forEach(v -> this.choiceVertex.add(v.display()));
+        this.model.schema.e().forEach(v -> this.choiceVertex.add(DigredDataConverter.displaySimpleRelType(v)));
         this.choiceVertex.addItemListener(this::selectedVertex);
         layout.setConstraints(this.choiceVertex, lay);
         add(this.choiceVertex);
@@ -94,7 +94,7 @@ public class DigredVertexPanel extends Panel implements ViewUpdater {
     private void selectedEntity(final ActionEvent e) {
         Tracer.trace("SELECT ENTITY: "+e.paramString());
         final var record = this.listResults.get(this.listboxResults.getSelectedIndex());
-        final var id = record.get("id").asLong();
+        final var id = record.get("n").asEntity().id();
         this.ident = this.ident.with(id);
         this.updater.updateViewFromModel(ident);
     }
@@ -162,11 +162,8 @@ public class DigredVertexPanel extends Panel implements ViewUpdater {
             query = new Query(
                 String.format(
                     "MATCH (tail:%s)-[n:%s]->(head:%s) "+
-                    "RETURN " +
-                        "tail, ID(tail) AS idTail, " +
-                        "head, ID(head) AS idHead, " +
-                        "n, ID(n) AS id "+
-                        (propMod.isPresent() ? "ORDER BY n."+propMod.get().key()+" DESC " : "") +
+                    "RETURN tail, n, head "+
+                    (propMod.isPresent() ? "ORDER BY n."+propMod.get().key()+" DESC " : "") +
                     "LIMIT 100",
                 edge.tail().typename(),
                 edge.typename(),
@@ -185,11 +182,17 @@ public class DigredVertexPanel extends Panel implements ViewUpdater {
         long idFirst = -1;
         int preselect = -1;
         for (final var r : rs) {
-            final var id = r.get("id").asLong();
-
             this.listResults.add(r);
-            this.listboxResults.add(resultDisplayNameOf(entity, r));
 
+            final String name;
+            if (entity.vertex()) {
+                name = DigredDataConverter.displayNode(r.get("n").asNode(), this.model, true);
+            } else {
+                name = DigredDataConverter.displayRel(r.get("n").asRelationship(), r.get("tail").asNode(), r.get("head").asNode(), this.model);
+            }
+            this.listboxResults.add(name);
+
+            final var id = r.get("n").asEntity().id();
             if (idFirst < 0) {
                 idFirst = id;
             }
@@ -218,89 +221,6 @@ public class DigredVertexPanel extends Panel implements ViewUpdater {
             this.updater.updateViewFromModel(this.ident);
 
             EventQueue.invokeLater(() -> this.listboxResults.requestFocus());
-        }
-    }
-
-    public static String resultDisplayNameOf(final Entity entity, final Record r) {
-        if (entity.vertex()) {
-            final var e = (Vertex)entity;
-            final var props = r.get("n").asMap(Values.ofValue());
-            final var propMod = e.propOf(DataType._DIGRED_MODIFIED);
-            String ts = "";
-            if (propMod.isPresent()) {
-                ts = DigredDataConverter.displayValueOf(props.get(propMod.get().key()));
-            }
-            if (!ts.isEmpty()) {
-                ts = ts+": ";
-            }
-
-            final var propName = e.propOf(DataType._DIGRED_NAME);
-            Value name = null;
-            if (propName.isPresent()) {
-                name = props.get(propName.get().key());
-            }
-            if (Objects.nonNull(name) && !name.isNull() && !name.isEmpty()) {
-                return name.asString();
-            }
-            return ts+e.display(r.get("id").asLong());
-        } else {
-            final var e = (Edge)entity;
-            final var props = r.get("n").asMap(Values.ofValue());
-
-            String ts;
-            final String rel;
-            final var propName = e.propOf(DataType._DIGRED_NAME);
-            Value name = null;
-            if (propName.isPresent()) {
-                name = props.get(propName.get().key());
-            }
-            if (Objects.nonNull(name) && !name.isNull() && !name.isEmpty()) {
-                ts = "";
-                rel = name.asString();
-            } else {
-                final var propMod = e.propOf(DataType._DIGRED_MODIFIED);
-                ts = "";
-                if (propMod.isPresent()) {
-                    ts = DigredDataConverter.displayValueOf(props.get(propMod.get().key()));
-                }
-                if (!ts.isEmpty()) {
-                    ts = ts+": ";
-                }
-
-
-                rel = e.display(r.get("id").asLong());
-            }
-
-            final String tail;
-            {
-                final var propsT = r.get("tail").asMap(Values.ofValue());
-                final var propNameT = e.tail().propOf(DataType._DIGRED_NAME);
-                Value nameT = null;
-                if (propNameT.isPresent()) {
-                    nameT = propsT.get(propNameT.get().key());
-                }
-                if (Objects.nonNull(nameT) && !nameT.isNull() && !nameT.isEmpty()) {
-                    tail = nameT.asString();
-                } else {
-                    tail = e.tail().display(r.get("idTail").asLong());
-                }
-            }
-            final String head;
-            {
-                final var propsT = r.get("head").asMap(Values.ofValue());
-                final var propNameT = e.head().propOf(DataType._DIGRED_NAME);
-                Value nameT = null;
-                if (propNameT.isPresent()) {
-                    nameT = propsT.get(propNameT.get().key());
-                }
-                if (Objects.nonNull(nameT) && !nameT.isNull() && !nameT.isEmpty()) {
-                    head = nameT.asString();
-                } else {
-                    head = e.head().display(r.get("idHead").asLong());
-                }
-            }
-
-            return ts+tail+" - "+rel+" -> "+head;
         }
     }
 }

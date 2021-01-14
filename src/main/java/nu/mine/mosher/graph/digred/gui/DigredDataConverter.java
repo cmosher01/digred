@@ -1,9 +1,11 @@
 package nu.mine.mosher.graph.digred.gui;
 
+import nu.mine.mosher.graph.digred.schema.Entity;
 import nu.mine.mosher.graph.digred.schema.*;
 import org.neo4j.driver.*;
 import org.neo4j.driver.internal.types.TypeConstructor;
 import org.neo4j.driver.internal.value.NullValue;
+import org.neo4j.driver.types.*;
 
 import java.awt.*;
 import java.util.*;
@@ -51,6 +53,154 @@ public class DigredDataConverter {
             return "";
         }
         return "[cannot convert value of type "+value.type().name()+" for display]";
+    }
+
+    public static String displayNode(final Node node, final DigredModel model, final boolean withMod) {
+        final var defType = defTypeOf(node, model);
+        var name = nameOrBlank(node, defType);
+        if (name.isBlank()) {
+            name = displayEntityWithID("", defType, node.id());
+            if (withMod) {
+                final var mod = modOrBlank(node, defType);
+                if (!mod.isBlank()) {
+                    name = mod+": "+name;
+                }
+            }
+        }
+        return name;
+    }
+
+    public static String displayRel(final Relationship rel, final Node tail, final Node head, final DigredModel model) {
+        final var defType = defTypeOf(rel, tail, head, model);
+        var name = nameOrBlank(rel, defType);
+        final var displayTail = displayNode(tail, model, false);
+        final var displayHead = displayNode(head, model, false);
+
+        if (!name.isBlank()) {
+            return displayTail+" - "+name+" -> "+displayHead;
+        }
+
+        var mod = modOrBlank(rel, defType);
+        if (!mod.isBlank()) {
+            mod = mod + ": ";
+        }
+
+        name = displayEntityWithID("", defType, rel.id());
+        return mod+displayTail+" - "+name+" -> "+displayHead;
+    }
+
+    public static String displayThisNodeType(final Vertex vertex) {
+        return "(this:"+vertex.typename()+")";
+    }
+
+    public static String displayOutgoingRel(final Relationship rel, final Node tail, final Node head, final DigredModel model) {
+        final var defType = defTypeOf(rel, tail, head, model);
+        final var name = nameOrBlank(rel, defType);
+        final var relWithID = displayEntityWithID("", defType, rel.id());
+        final var headWithID = displayNode(head, model, false);
+        final var defTypeThis = displayThisNodeType(defTypeOf(tail, model));
+        return String.format("%s - %s -> %s", defTypeThis, name.isBlank() ? relWithID : name, headWithID);
+    }
+
+    public static String displayIncomingRel(final Relationship rel, final Node tail, final Node head, final DigredModel model) {
+        final var defType = defTypeOf(rel, tail, head, model);
+        final var name = nameOrBlank(rel, defType);
+        final var relWithID = displayEntityWithID("", defType, rel.id());
+        final var tailWithID = displayNode(tail, model, false);
+        final var defTypeThis = displayThisNodeType(defTypeOf(head, model));
+        return String.format("%s - %s -> %s", tailWithID, name.isBlank() ? relWithID : name, defTypeThis);
+    }
+
+    public static String displayEntityWithID(final String varname, final Entity entity, final long id) {
+        return String.format(
+            "%s%s:%s{ID:%d}%s",
+                entity.vertex() ? "(" : "[",
+                varname,
+                entity.typename(),
+                id,
+                entity.vertex() ? ")" : "]"
+        );
+    }
+
+    public static String displayOutgoingType(final Edge e) {
+        return displayShortType("this", e.tail()) + " - " + displayShortType("add", e) + " -> " + displayShortType("", e.head());
+    }
+
+    public static String displayIncomingType(final Edge e) {
+        return displayShortType("", e.tail()) + " - " + displayShortType("add", e) + " -> " + displayShortType("this", e.head());
+    }
+
+    public static String displaySimpleRelType(final Entity e) {
+        if (e.vertex()) {
+            return displayShortType("", e);
+        }
+        final var edge = (Edge)e;
+        return displayShortType("", edge.tail()) + " - " + displayShortType("", e) + " -> " + displayShortType("", edge.head());
+    }
+
+    public static String displayShortType(final String varname, final Entity entity) {
+        return String.format(
+            "%s%s:%s%s",
+            entity.vertex() ? "(" : "[",
+            varname,
+            entity.typename(),
+            entity.vertex() ? ")" : "]"
+        );
+    }
+
+    public static Vertex defTypeOf(final Node node, final DigredModel model) {
+        final var defTypeName = node.labels().iterator().next();
+        final var defEntity = model.schema.of(defTypeName);
+        if (!defEntity.vertex()) {
+            throw new IllegalStateException(); // TODO ?
+        }
+        return defEntity;
+    }
+
+    public static Edge defTypeOf(final Relationship rel, final Node tail, final Node head, final DigredModel model) {
+        final var defTypeName = rel.type();
+        final var defTypeNameTail = tail.labels().iterator().next();
+        final var defTypeNameHead = head.labels().iterator().next();
+        final var defEntity = model.schema.of(defTypeName, defTypeNameTail, defTypeNameHead);
+        if (defEntity.vertex()) {
+            throw new IllegalStateException(); // TODO ?
+        }
+        return defEntity;
+    }
+
+    public static String nameOrBlank(final org.neo4j.driver.types.Entity nodeOrRel, final Entity defEntity) {
+        final var defPropName = defEntity.propOf(DataType._DIGRED_NAME);
+        if (defPropName.isPresent()) {
+            final var name = DigredDataConverter.asGoodString(nodeOrRel.get(defPropName.get().key()));
+            if (name.isPresent()) {
+                return name.get();
+            }
+        }
+
+        // TODO if no _DIGRED_NAME, use smart algorithm:
+        //  if one STRING prop use it, else if one TEXT use, else if one prop convert and use, else blank
+
+        return "";
+    }
+
+    public static String modOrBlank(final org.neo4j.driver.types.Entity nodeOrRel, final Entity defEntity) {
+        final var defPropName = defEntity.propOf(DataType._DIGRED_MODIFIED);
+        if (defPropName.isPresent()) {
+            final var mod = DigredDataConverter.displayValueOf(nodeOrRel.get(defPropName.get().key()));
+            if (!mod.isEmpty()) {
+                // TODO truncate to second?
+                return mod;
+            }
+        }
+
+        return "";
+    }
+
+    public static Optional<String> asGoodString(final Value v) {
+        if (Objects.nonNull(v) && !v.isNull() && TypeConstructor.STRING.covers(v) && !v.asString().isBlank()) {
+            return Optional.of(v.asString());
+        }
+        return Optional.empty();
     }
 
     public static void setComponentValue(final Value val, final Prop prop, final Component cmp) {

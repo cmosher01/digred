@@ -11,12 +11,11 @@ import java.awt.event.*;
 import java.util.*;
 
 import static java.awt.event.KeyEvent.*;
-import static nu.mine.mosher.graph.digred.gui.DigredVertexPanel.resultDisplayNameOf;
 
 @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
 public class DigredChoosePopup extends Dialog {
-    public static Optional<Long> run(final Frame owner, final DataStore dataStore, final Entity vertexChoose) {
-        final var popup = new DigredChoosePopup(owner, dataStore, vertexChoose);
+    public static Optional<Long> run(final Frame owner, final DataStore dataStore, final DigredModel model, final Entity vertexChoose, final boolean incoming, final Edge e) {
+        final var popup = new DigredChoosePopup(owner, dataStore, model, vertexChoose, incoming, e);
         popup.init();
         popup.queryEntities();
         popup.setVisible(true);
@@ -24,6 +23,7 @@ public class DigredChoosePopup extends Dialog {
     }
 
     private final DataStore datastore;
+    private final DigredModel model;
     private final Entity vertexChoose;
 
     private List listboxResults;
@@ -31,9 +31,10 @@ public class DigredChoosePopup extends Dialog {
 
     private Optional<Long> id = Optional.empty();
 
-    private DigredChoosePopup(final Frame owner, final DataStore dataStore, final Entity vertexChoose) {
-        super(owner, vertexChoose.display(), true);
+    private DigredChoosePopup(final Frame owner, final DataStore dataStore, final DigredModel model, final Entity vertexChoose, boolean incoming, Edge e) {
+        super(owner, incoming ? DigredDataConverter.displayIncomingType(e) : DigredDataConverter.displayOutgoingType(e), true);
         this.datastore = dataStore;
+        this.model = model;
         this.vertexChoose = vertexChoose;
     }
 
@@ -95,7 +96,7 @@ public class DigredChoosePopup extends Dialog {
         final int i = this.listboxResults.getSelectedIndex();
         if (0 <= i) {
             final var rec = this.listResults.get(i);
-            this.id = Optional.of(rec.get("id").asLong());
+            this.id = Optional.of(rec.get("n").asNode().id());
         }
         done(e);
     }
@@ -111,7 +112,7 @@ public class DigredChoosePopup extends Dialog {
 //        if (this.search.isBlank()) {
             final var propMod = vertex.propOf(DataType._DIGRED_MODIFIED);
             query = new Query(String.format("MATCH (n:%s) " +
-                    "RETURN n, ID(n) AS id " +
+                    "RETURN n " +
                     (propMod.isPresent() ? "ORDER BY n."+propMod.get().key()+" DESC " : "") +
                     "LIMIT 100",
                 vertex.typename()));
@@ -129,7 +130,7 @@ public class DigredChoosePopup extends Dialog {
         this.listboxResults.removeAll();
         rs.forEach(r -> {
             this.listResults.add(r);
-            this.listboxResults.add(resultDisplayNameOf(vertex, r));
+            this.listboxResults.add(DigredDataConverter.displayNode(r.get("n").asNode(), this.model, true));
         });
 
         if (!this.listResults.isEmpty()) {

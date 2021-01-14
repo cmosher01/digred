@@ -64,14 +64,14 @@ public class DigredLinksPanel extends Container {
 
         final var vertex = (Vertex)entity;
         this.model.edgesOut.get(vertex).forEach(e -> {
-            final var b = new Button("Add   "+e.display("this", "", ""));
+            final var b = new Button("Add   "+DigredDataConverter.displayOutgoingType(e));
             b.addActionListener(x -> pressedAdd(x, e, false));
             layout.setConstraints(b, cns);
             add(b);
         });
 
         this.model.edgesIn.get(vertex).forEach(e -> {
-            final var b = new Button("Add   "+e.display("", "", "this"));
+            final var b = new Button("Add   "+DigredDataConverter.displayIncomingType(e));
             b.addActionListener(x -> pressedAdd(x, e, true));
             layout.setConstraints(b, cns);
             add(b);
@@ -85,7 +85,7 @@ public class DigredLinksPanel extends Container {
 
     private void pressedAdd(final ActionEvent x, final Edge e, final boolean incoming) {
         final var vertexTarget = incoming ? e.tail() : e.head();
-        final Optional<Long> id = DigredChoosePopup.run(this.owner, this.datastore, vertexTarget);
+        final Optional<Long> id = DigredChoosePopup.run(this.owner, this.datastore, this.model, vertexTarget, incoming, e);
         if (id.isPresent()) {
             Tracer.trace("ADD: "+x.paramString());
             createEdge(e, vertexTarget, id.get(), incoming);
@@ -132,7 +132,7 @@ public class DigredLinksPanel extends Container {
 
         {
             final Query query = new Query(
-                String.format("MATCH (me:%s)-[r]->(n) WHERE ID(me) = $id RETURN r, ID(r) AS idR, n, ID(n) AS idN", this.ident.type().typename()),
+                String.format("MATCH (me:%s)-[r]->(n) WHERE ID(me) = $id RETURN n, r, me", this.ident.type().typename()),
                 Map.of("id", this.ident.id().get()));
             final java.util.List<Record> rs;
             try (final var session = this.datastore.session()) {
@@ -141,9 +141,11 @@ public class DigredLinksPanel extends Container {
                 Tracer.trace("records found: "+rs.size());
             }
             rs.forEach(r -> {
+                // outgoing link
                 // (this)-[r]->(n)
-                final var rel = r.get("r").asRelationship();
                 final var node = r.get("n").asNode();
+                final var rel = r.get("r").asRelationship();
+                final var me = r.get("me").asNode();
 
                 final var tail = this.ident.type().typename();
                 final var head = node.labels().iterator().next();
@@ -151,39 +153,12 @@ public class DigredLinksPanel extends Container {
                 final var link = new DigredEntityIdent(type, rel.id());
                 this.links.add(link);
 
-                final var typeHead = this.model.schema.of(head);
-                final var propsHead = r.get("n").asMap(Values.ofValue());
-                final Optional<Prop> pNameHead = typeHead.propOf(DataType._DIGRED_NAME);
-                Value nameH = null;
-                if (pNameHead.isPresent()) {
-                    nameH = propsHead.get(pNameHead.get().key());
-                }
-                String shead;
-                if (Objects.nonNull(nameH) && !nameH.isNull() && !nameH.isEmpty()) {
-                    shead = nameH.asString();
-                } else {
-                    shead = type.head().display(r.get("idN").asLong());
-                }
-
-                final var propsRel = r.get("r").asMap(Values.ofValue());
-                final Optional<Prop> pName = type.propOf(DataType._DIGRED_NAME);
-                Value nameR = null;
-                if (pName.isPresent()) {
-                    nameR = propsRel.get(pName.get().key());
-                }
-                String srel;
-                if (Objects.nonNull(nameR) && !nameR.isNull() && !nameR.isEmpty()) {
-                    srel = nameR.asString();
-                } else {
-                    srel = type.display(r.get("idR").asLong());
-                }
-
-                this.listboxLinks.add("(this) - "+srel+" -> "+shead);
+                this.listboxLinks.add(DigredDataConverter.displayOutgoingRel(rel, me, node, this.model));
             });
         }
         {
             final Query query = new Query(
-                String.format("MATCH (me:%s)<-[r]-(n) WHERE ID(me) = $id RETURN r, ID(r) AS idR, n, ID(n) AS idN", this.ident.type().typename()),
+                String.format("MATCH (me:%s)<-[r]-(n) WHERE ID(me) = $id RETURN n, r, me", this.ident.type().typename()),
                 Map.of("id", this.ident.id().get()));
             final java.util.List<Record> rs;
             try (final var session = this.datastore.session()) {
@@ -192,9 +167,11 @@ public class DigredLinksPanel extends Container {
                 Tracer.trace("records found: "+rs.size());
             }
             rs.forEach(r -> {
+                // incoming link
                 // (n)-[r]->(this)
-                final var rel = r.get("r").asRelationship();
                 final var node = r.get("n").asNode();
+                final var rel = r.get("r").asRelationship();
+                final var me = r.get("me").asNode();
 
                 final var tail = node.labels().iterator().next();
                 final var head = this.ident.type().typename();
@@ -202,34 +179,7 @@ public class DigredLinksPanel extends Container {
                 final var link = new DigredEntityIdent(type, rel.id());
                 this.links.add(link);
 
-                final var propsRel = r.get("r").asMap(Values.ofValue());
-                final Optional<Prop> pName = type.propOf(DataType._DIGRED_NAME);
-                Value nameR = null;
-                if (pName.isPresent()) {
-                    nameR = propsRel.get(pName.get().key());
-                }
-                String srel;
-                if (Objects.nonNull(nameR) && !nameR.isNull() && !nameR.isEmpty()) {
-                    srel = nameR.asString();
-                } else {
-                    srel = type.display(r.get("idR").asLong());
-                }
-
-                final var typeTail = this.model.schema.of(tail);
-                final var propsTail = r.get("n").asMap(Values.ofValue());
-                final Optional<Prop> pNameTail = typeTail.propOf(DataType._DIGRED_NAME);
-                Value nameT = null;
-                if (pNameTail.isPresent()) {
-                    nameT = propsTail.get(pNameTail.get().key());
-                }
-                String stail;
-                if (Objects.nonNull(nameT) && !nameT.isNull() && !nameT.isEmpty()) {
-                    stail = nameT.asString();
-                } else {
-                    stail = type.tail().display(r.get("idN").asLong());
-                }
-
-                this.listboxLinks.add(stail+" - "+srel+" -> (this)");
+                this.listboxLinks.add(DigredDataConverter.displayIncomingRel(rel, node, me, this.model));
             });
         }
     }

@@ -15,21 +15,23 @@ import static java.awt.FlowLayout.LEADING;
 
 public class DigredPropsForm extends Container {
     private final DataStore datastore;
+    private final DigredModel model;
     private final ViewUpdater updater;
     private final List<Component> fields = new ArrayList<>(16);
     private final List<Value> valuesOrig = new ArrayList<>(16);
     private final DigredEntityIdent ident;
 
-    public static DigredPropsForm create(final DataStore datastore, final ViewUpdater updater, final DigredEntityIdent ident) {
+    public static DigredPropsForm create(final DataStore datastore, final DigredModel model, final ViewUpdater updater, final DigredEntityIdent ident) {
         Tracer.trace("DigredPropsForm: create");
         Tracer.trace("    ident: "+ident);
-        final DigredPropsForm form = new DigredPropsForm(datastore, updater, ident);
+        final DigredPropsForm form = new DigredPropsForm(datastore, model, updater, ident);
         form.init();
         return form;
     }
 
-    private DigredPropsForm(final DataStore datastore, final ViewUpdater updater, final DigredEntityIdent ident) {
+    private DigredPropsForm(final DataStore datastore, final DigredModel model, final ViewUpdater updater, final DigredEntityIdent ident) {
         this.datastore = datastore;
+        this.model = model;
         this.updater = updater;
         this.ident = ident;
         if (this.ident.id().isEmpty()) {
@@ -78,7 +80,7 @@ public class DigredPropsForm extends Container {
             if (Objects.nonNull(nameT) && !nameT.isNull() && !nameT.isEmpty()) {
                 stail = nameT.asString();
             } else {
-                stail = e.tail().display(rec.get("idTail").asLong());
+                stail = DigredDataConverter.displayNode(rec.get("tail").asNode(), this.model, false);
             }
             labelTail.setLabel(stail);
             labelTail.addActionListener(event -> selectLink(event, vertexTail, tail.id()));
@@ -86,7 +88,7 @@ public class DigredPropsForm extends Container {
 
             final var labelNode = new Label();
             labelNode.setAlignment(Label.CENTER);
-            labelNode.setText(e.display(node.id()));
+            labelNode.setText(DigredDataConverter.displayEntityWithID("this", e, node.id()));
             p.add(labelNode);
 
             final var head = rec.get("head").asNode();
@@ -103,7 +105,7 @@ public class DigredPropsForm extends Container {
             if (Objects.nonNull(nameH) && !nameH.isNull() && !nameH.isEmpty()) {
                 shead = nameH.asString();
             } else {
-                shead = e.head().display(rec.get("idHead").asLong());
+                shead = DigredDataConverter.displayNode(rec.get("head").asNode(), this.model, false);
             }
             labelHead.setLabel(shead);
             labelHead.addActionListener(event -> selectLink(event, vertexHead, head.id()));
@@ -120,7 +122,7 @@ public class DigredPropsForm extends Container {
 
             final var labelNode = new Label();
             labelNode.setAlignment(Label.CENTER);
-            labelNode.setText(v.display(node.id()));
+            labelNode.setText(DigredDataConverter.displayEntityWithID("this", typeEntity, node.id()));
             layout.setConstraints(labelNode, lay);
             add(labelNode);
         }
@@ -191,7 +193,6 @@ public class DigredPropsForm extends Container {
     private Record query(final Entity typeEntity, final Long idEntity) {
         final Query query;
         if (typeEntity.vertex()) {
-            // TODO use pk instead (but still need to handle case where pk is not defined in schema)
             query = new Query(String.format("MATCH (n:%s) WHERE ID(n) = $id RETURN n",
                 typeEntity.typename()),
                 Map.of("id", idEntity));

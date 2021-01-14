@@ -23,18 +23,6 @@ public class DigredEntityIdent {
         return new DigredEntityIdent(type(), id);
     }
 
-//    public int schemaTypeIndex(final DigraphSchema schema) {
-//        if (schema.e().isEmpty()) {
-//            throw new IllegalStateException();
-//        }
-//
-//        if (this.type.isEmpty()) {
-//            return 0;
-//        }
-//
-//        return schema.e().indexOf(this.type.get());
-//    }
-
     public Entity type() {
         return this.type;
     }
@@ -46,7 +34,7 @@ public class DigredEntityIdent {
     @Override
     public String toString() {
         return "DigredEntityIdent{" +
-            "type=" + type.display() +
+            "type=" + type.typename() +
             ", ID=" + id +
             '}';
     }

@@ -22,26 +22,6 @@ implements Entity {
     }
 
     @Override
-    public String display() {
-        return display("", "", "");
-    }
-
-    public String display(final String nameTail, final String name, final String nameHead) {
-        return
-            tail().display(nameTail)+
-            "-["+name+":"+type()+"]->"
-            +head().display(nameHead);
-    }
-
-    public String display(final String name) {
-        return "["+name+":"+type()+"]";
-    }
-
-    public String display(final long id) {
-        return "[:"+type()+"{ID:"+id+"}]";
-    }
-
-    @Override
     public boolean vertex() {
         return false;
     }

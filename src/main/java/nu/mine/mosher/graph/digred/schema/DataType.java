@@ -18,7 +18,7 @@ public enum DataType {
      * UUID primary key for entity, intended as a permanent,
      * primary key, UUID unique identifier for the entity.
      *
-     * Automatically set by digred, but not used by it otherwise
+     * Digred sets this upon creation, but does not used it otherwise.
      */
     _DIGRED_PK,
 
@@ -30,6 +30,6 @@ public enum DataType {
     /** last modified timestamp */
     _DIGRED_MODIFIED,
 
-    /** short name for the entity */
+    /** Short name for the entity. Digred uses this to display the entity in lists. */
     _DIGRED_NAME
 }

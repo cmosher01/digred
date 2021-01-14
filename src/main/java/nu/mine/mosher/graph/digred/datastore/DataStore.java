@@ -1,6 +1,6 @@
 package nu.mine.mosher.graph.digred.datastore;
 
-import nu.mine.mosher.graph.digred.schema.*;
+import nu.mine.mosher.graph.digred.schema.DataType;
 import org.neo4j.driver.*;
 import org.neo4j.driver.internal.types.TypeConstructor;
 import org.slf4j.Logger;
