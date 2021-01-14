@@ -64,6 +64,21 @@ import java.util.*;
  *  where RA: if name is non-blank, then "name", else "[:TYPE{ID:###}]"
  */
 public class DigredDataConverter {
+    // TODO is this useful at all?
+    private static final Map<DataType, TypeConstructor> mapDataTypes = Map.of(
+        DataType.INTEGER, TypeConstructor.INTEGER,
+        DataType.FLOAT, TypeConstructor.FLOAT,
+        DataType.STRING, TypeConstructor.STRING,
+        DataType.BOOLEAN, TypeConstructor.BOOLEAN,
+        DataType.DATE, TypeConstructor.DATE,
+        DataType.TIME, TypeConstructor.TIME,
+        DataType.DATETIME, TypeConstructor.DATE_TIME,
+        DataType.DURATION, TypeConstructor.DURATION,
+
+        DataType.TEXT, TypeConstructor.STRING,
+        DataType.UUID, TypeConstructor.STRING
+    );
+
     public static ArrayList<String> digredCypherProps(final Entity e) {
         final var cyProps = new ArrayList<String>();
         e.props().forEach(prop -> {

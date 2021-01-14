@@ -25,6 +25,8 @@ class DigredFrame extends Frame {
     private DigredMainPanel panelMain;
     private MenuItem itemOpen;
     private MenuItem itemClose;
+    private MenuItem itemConnect;
+    private MenuItem itemDisconnect;
 
 
 
@@ -42,9 +44,6 @@ class DigredFrame extends Frame {
     private void init() {
         setSize(1920,1080);
         setLocationRelativeTo(CENTER_ON_SCREEN);
-
-        // TODO add menu items to allow user to connect and disconnect to the database
-        this.datastore.connect(DataStore.NEO, "neo4j", "neo4j"/*"admin"*/);
 
 
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
@@ -160,7 +159,7 @@ class DigredFrame extends Frame {
 
             this.panelMain = DigredMainPanel.create(this, new DigredModel(schema), this.datastore);
             add(this.panelMain);
-            updateFileMenu();
+            updateMenus();
 
 
 
@@ -217,15 +216,41 @@ class DigredFrame extends Frame {
         if (Objects.nonNull(this.panelMain)) {
             remove(this.panelMain);
             this.panelMain = null;
-            updateFileMenu();
+            updateMenus();
         }
     }
 
-    public void updateFileMenu() {
+    public MenuItem initDatabaseConnectMenuItem() {
+        this.itemConnect = new MenuItem("Connect");
+        this.itemConnect.setShortcut(new MenuShortcut(VK_D));
+        this.itemConnect.addActionListener(this::databaseConnect);
+        return this.itemConnect;
+    }
+
+    public MenuItem initDatabaseDisconnectMenuItem() {
+        this.itemDisconnect = new MenuItem("Disonnect");
+        this.itemDisconnect.addActionListener(this::databaseDisconnect);
+        return this.itemDisconnect;
+    }
+
+    private void databaseConnect(final ActionEvent e) {
+        DigredDatabasePopup.run(this, this.datastore);
+        updateMenus();
+    }
+
+    private void databaseDisconnect(final ActionEvent e) {
+        this.datastore.disconnect();
+        updateMenus();
+    }
+
+    void updateMenus() {
         final var loaded = Objects.nonNull(this.panelMain);
 
+        this.itemOpen.setEnabled(!loaded && this.datastore.connected());
         this.itemClose.setEnabled(loaded);
-        this.itemOpen.setEnabled(!loaded);
+
+        this.itemConnect.setEnabled(!this.datastore.connected());
+        this.itemDisconnect.setEnabled(this.datastore.connected());
     }
 
 

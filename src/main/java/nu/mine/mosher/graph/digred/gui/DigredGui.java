@@ -55,7 +55,7 @@ public class DigredGui {
         final DigredFrame frame = DigredFrame.create();
         DigredMenuBar.create(frame);
 
-        frame.updateFileMenu();
+        frame.updateMenus();
     }
 
     private static void initAwtLogging() {

@@ -35,10 +35,24 @@ public class DigredMenuBar extends MenuBar {
         final MenuItem itemQuit = initFileQuitMenuItem();
         menuFile.add(itemQuit);
 
+        add(menuFile);
+
+
+
+        final Menu menuDatabase = new Menu("Database");
+
+        final MenuItem itemConnect = this.frame.initDatabaseConnectMenuItem();
+        menuDatabase.add(itemConnect);
+        final MenuItem itemDisconnect = this.frame.initDatabaseDisconnectMenuItem();
+        menuDatabase.add(itemDisconnect);
+
+        add(menuDatabase);
+
+
+
+
 //        TODO setHelpMenu();
 //        TODO "about..." box
-
-        add(menuFile);
 
         frame.setMenuBar(this);
     }

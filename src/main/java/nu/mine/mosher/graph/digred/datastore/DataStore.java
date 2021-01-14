@@ -1,8 +1,6 @@
 package nu.mine.mosher.graph.digred.datastore;
 
-import nu.mine.mosher.graph.digred.schema.DataType;
 import org.neo4j.driver.*;
-import org.neo4j.driver.internal.types.TypeConstructor;
 import org.slf4j.Logger;
 import org.slf4j.*;
 
@@ -12,21 +10,7 @@ import java.util.*;
 public class DataStore {
     private static final Logger LOG = LoggerFactory.getLogger(DataStore.class);
 
-    public static final URI NEO = URI.create("neo4j://localhost:7687");
-
-    public static final Map<DataType, TypeConstructor> mapDataTypes = Map.of(
-        DataType.INTEGER, TypeConstructor.INTEGER,
-        DataType.FLOAT, TypeConstructor.FLOAT,
-        DataType.STRING, TypeConstructor.STRING,
-        DataType.BOOLEAN, TypeConstructor.BOOLEAN,
-        DataType.DATE, TypeConstructor.DATE,
-        DataType.TIME, TypeConstructor.TIME,
-        DataType.DATETIME, TypeConstructor.DATE_TIME,
-        DataType.DURATION, TypeConstructor.DURATION,
-
-        DataType.TEXT, TypeConstructor.STRING,
-        DataType.UUID, TypeConstructor.STRING
-    );
+    private static final URI NEO = URI.create("neo4j://localhost:7687");
 
     private Driver database;
 
@@ -37,7 +21,7 @@ public class DataStore {
     }
 
     public void disconnect() {
-        if (Objects.nonNull(this.database)) {
+        if (connected()) {
             LOG.info("Disconnecting from database...");
             this.database.close();
             this.database = null;
@@ -49,5 +33,21 @@ public class DataStore {
 
     public Session session() {
         return this.database.session();
+    }
+
+    public boolean connected() {
+        return Objects.nonNull(this.database);
+    }
+
+    public static URI uriDefault() {
+        return NEO;
+    }
+
+    public static String usernameDefault() {
+        return "neo4j";
+    }
+
+    public static String passwordDefault() {
+        return "";
     }
 }
