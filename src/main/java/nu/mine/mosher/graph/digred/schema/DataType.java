@@ -9,7 +9,6 @@ public enum DataType {
     DATE,
     TIME,
     DATETIME,
-    DURATION,
     UUID,
 
     // digred-specific datatypes:

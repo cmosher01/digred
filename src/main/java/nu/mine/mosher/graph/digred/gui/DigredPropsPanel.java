@@ -60,7 +60,7 @@ public class DigredPropsPanel extends Panel implements ViewUpdater {
             cns.gridx = 0;
             cns.anchor = GridBagConstraints.NORTHWEST;
 
-            this.form = DigredPropsForm.create(this.datastore, this.model, this.updater, ident);
+            this.form = DigredPropsForm.create(this.owner, this.datastore, this.model, this.updater, ident);
             cns.weightx = 1.0D;
             cns.fill = GridBagConstraints.HORIZONTAL;
             layoutManager.setConstraints(this.form, cns);

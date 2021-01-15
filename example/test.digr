@@ -1,10 +1,16 @@
-_digred_common
+Test
     pk:_DIGRED_PK
     version:_DIGRED_VERSION
     created:_DIGRED_CREATED
     modified:_DIGRED_MODIFIED
     name:_DIGRED_NAME
 
-Test
-    x:TEXT
-    f:BOOLEAN
+    integer:INTEGER
+    float:FLOAT
+    string:STRING
+    text:TEXT
+    boolean:BOOLEAN
+    date:DATE
+    time:TIME
+    datetime:DATETIME
+    uuid:UUID

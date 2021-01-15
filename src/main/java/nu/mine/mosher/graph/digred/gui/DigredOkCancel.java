@@ -5,34 +5,40 @@ import java.awt.event.ActionEvent;
 
 public class DigredOkCancel extends Dialog {
     private final String message;
+    private final boolean withCancel;
     private boolean ok;
 
-    public static boolean run(final Frame owner, final String message) {
-        final var dialog = new DigredOkCancel(owner, message);
+    public static boolean run(final Frame owner, final String message, final boolean withCancel) {
+        final var dialog = new DigredOkCancel(owner, message, withCancel);
         dialog.init();
         dialog.setVisible(true);
         return dialog.ok;
     }
 
-    private DigredOkCancel(final Frame owner, final String message) {
+    private DigredOkCancel(final Frame owner, final String message, final boolean withCancel) {
         super(owner, true);
         this.message = message;
+        this.withCancel = withCancel;
     }
 
     private void init() {
-        setSize(690, 180);
+        setSize(690, 300);
         setLocation(180, 180);
 
         final var labels = new Panel();
         labels.setLayout(new FlowLayout(FlowLayout.LEADING, 20, 20));
-        labels.add(new Label(this.message));
+        final var label = new TextArea(this.message);
+        label.setEditable(false);
+        labels.add(label);
         add(labels);
 
         final var buttons = new Panel();
         buttons.setLayout(new FlowLayout(FlowLayout.TRAILING, 20, 20));
-        final var cancel = new Button("Cancel");
-        cancel.addActionListener(this::pressedCancel);
-        buttons.add(cancel);
+        if (withCancel) {
+            final var cancel = new Button("Cancel");
+            cancel.addActionListener(this::pressedCancel);
+            buttons.add(cancel);
+        }
         final var ok = new Button("OK");
         ok.addActionListener(this::pressedOK);
         EventQueue.invokeLater(ok::requestFocus);

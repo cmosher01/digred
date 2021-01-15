@@ -10,10 +10,12 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.util.List;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static java.awt.FlowLayout.LEADING;
 
 public class DigredPropsForm extends Container {
+    private final Frame owner;
     private final DataStore datastore;
     private final DigredModel model;
     private final ViewUpdater updater;
@@ -21,15 +23,16 @@ public class DigredPropsForm extends Container {
     private final List<Value> valuesOrig = new ArrayList<>(16);
     private final DigredEntityIdent ident;
 
-    public static DigredPropsForm create(final DataStore datastore, final DigredModel model, final ViewUpdater updater, final DigredEntityIdent ident) {
+    public static DigredPropsForm create(final Frame owner, final DataStore datastore, final DigredModel model, final ViewUpdater updater, final DigredEntityIdent ident) {
         Tracer.trace("DigredPropsForm: create");
         Tracer.trace("    ident: "+ident);
-        final DigredPropsForm form = new DigredPropsForm(datastore, model, updater, ident);
+        final DigredPropsForm form = new DigredPropsForm(owner, datastore, model, updater, ident);
         form.init();
         return form;
     }
 
-    private DigredPropsForm(final DataStore datastore, final DigredModel model, final ViewUpdater updater, final DigredEntityIdent ident) {
+    private DigredPropsForm(final Frame owner, final DataStore datastore, final DigredModel model, final ViewUpdater updater, final DigredEntityIdent ident) {
+        this.owner = owner;
         this.datastore = datastore;
         this.model = model;
         this.updater = updater;
@@ -216,7 +219,7 @@ public class DigredPropsForm extends Container {
 
     private void pressedDelete(final ActionEvent e) {
         Tracer.trace("DELETE: "+e.paramString());
-        if (DigredOkCancel.run(null, "WARNING! This will permanently delete this entity.")) {
+        if (DigredOkCancel.run(this.owner, "WARNING! This will permanently delete this entity.", true)) {
             final var entity = this.ident.type();
             final var query = new Query(
                 String.format(
@@ -261,11 +264,16 @@ public class DigredPropsForm extends Container {
 
         final var cyRemoves = new ArrayList<String>();
         final var params = new HashMap<String, Object>();
+        final var invalid = new ArrayList<Prop>();
         for (int i = 0; i < props.size(); ++i) {
             final var prop = props.get(i);
             if (!DigredDataConverter.readonly(prop)) {
                 final var valOrig = this.valuesOrig.get(i);
-                final var valNew = DigredDataConverter.valueOfComponent(this.fields.get(i), prop);
+                var valNew = DigredDataConverter.valueOfComponent(this.fields.get(i), prop);
+                if (Objects.isNull(valNew)) {
+                    invalid.add(prop);
+                    valNew = valOrig;
+                }
                 if (!valNew.equals(valOrig)) {
                     Tracer.trace("detected change: " + prop.key() + ": " + valOrig + " --> " + valNew);
                     if (valNew.isNull()) {
@@ -275,6 +283,11 @@ public class DigredPropsForm extends Container {
                     }
                 }
             }
+        }
+        if (!invalid.isEmpty()) {
+            final var displayInvalid = invalid.stream().map(Prop::key).collect(Collectors.joining(",\n"));
+            final var m = "The following fields were invalid and not saved:\n\n"+displayInvalid+"\n\n(But all other fields were saved.)";
+            DigredOkCancel.run(this.owner, m, false);
         }
 
         if (!cyRemoves.isEmpty() || !params.isEmpty()) {
