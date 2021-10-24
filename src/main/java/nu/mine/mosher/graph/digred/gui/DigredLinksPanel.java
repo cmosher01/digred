@@ -48,13 +48,7 @@ public class DigredLinksPanel extends Container {
 
         query();
 
-        this.listboxLinks.addActionListener(this::selectedLink);
-        cns.weightx = 1.0D;
-        cns.fill = GridBagConstraints.HORIZONTAL;
-        layout.setConstraints(this.listboxLinks, cns);
-        add(this.listboxLinks);
-        cns.weightx = 0.0D;
-        cns.fill = GridBagConstraints.NONE;
+
 
         final var entity = this.ident.type();
 
@@ -63,6 +57,23 @@ public class DigredLinksPanel extends Container {
         }
 
         final var vertex = (Vertex)entity;
+
+
+
+        this.listboxLinks.addActionListener(this::selectedLink);
+        cns.weightx = 1.0D;
+        cns.fill = GridBagConstraints.HORIZONTAL;
+        layout.setConstraints(this.listboxLinks, cns);
+
+        // in pathological case where no edges at all are allowed by the schema, then don't add this list component:
+        if (0 < this.model.edgesIn.get(vertex).size()+this.model.edgesOut.get(vertex).size()) {
+            add(this.listboxLinks);
+        }
+        cns.weightx = 0.0D;
+        cns.fill = GridBagConstraints.NONE;
+
+
+
         this.model.edgesOut.get(vertex).forEach(e -> {
             final var b = new Button("Add   "+DigredDataConverter.displayOutgoingType(e));
             b.addActionListener(x -> pressedAdd(x, e, false));

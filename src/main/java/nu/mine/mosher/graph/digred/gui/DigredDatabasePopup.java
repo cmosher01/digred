@@ -17,6 +17,7 @@ public class DigredDatabasePopup extends Dialog {
     }
 
     private final DataStore datastore;
+    private Label message;
     private TextField textUrlDatabase;
     private TextField textUsername;
     private TextField textPassword;
@@ -87,7 +88,6 @@ public class DigredDatabasePopup extends Dialog {
         lay.gridx = 1;
         layout.setConstraints(this.textUrlDatabase, lay);
         fields.add(this.textUrlDatabase);
-        add(fields);
 
         lay.gridy = 1;
         this.textUsername = new TextField(Digred.prefs().get("databaseUsername", DataStore.usernameDefault()));
@@ -106,10 +106,14 @@ public class DigredDatabasePopup extends Dialog {
         layout.setConstraints(this.textPassword, lay);
         fields.add(this.textPassword);
 
+        add(fields);
+
 
 
         final var buttons = new Panel();
         buttons.setLayout(new FlowLayout(FlowLayout.TRAILING, 20, 20));
+        this.message = new Label(" ".repeat(60));
+        buttons.add(message);
         final var cancel = new Button("Cancel");
         cancel.addKeyListener(esc);
         cancel.addActionListener(this::pressedCancel);
@@ -124,8 +128,13 @@ public class DigredDatabasePopup extends Dialog {
     }
 
     private void pressedOK(final ActionEvent e) {
+        this.message.setText("");
         this.datastore.connect(URI.create(this.textUrlDatabase.getText()), this.textUsername.getText(), this.textPassword.getText());
-        pressedCancel(e);
+        if (!this.datastore.ping()) {
+            this.message.setText("Error connecting to database.");
+        } else {
+            pressedCancel(e);
+        }
     }
 
     private void pressedCancel(final ActionEvent e) {

@@ -20,6 +20,19 @@ public class DataStore {
         this.database = GraphDatabase.driver(uri, AuthTokens.basic(username, password));
     }
 
+    public boolean ping() {
+        try {
+            LOG.trace("Verifying connectivity to the database...");
+            this.database.verifyConnectivity();
+            LOG.trace("Successfully verified connectivity to the database.");
+        } catch (final Exception e) {
+            LOG.warn("Error connecting to database", e);
+            return false;
+        }
+
+        return true;
+    }
+
     public void disconnect() {
         if (connected()) {
             LOG.info("Disconnecting from database...");

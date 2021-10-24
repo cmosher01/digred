@@ -149,7 +149,7 @@ public class DigredVertexPanel extends Panel implements ViewUpdater {
                     String.format(
                         "MATCH (n:%s) " +
                         "RETURN n, ID(n) AS id " +
-                        (propMod.isPresent() ? "ORDER BY n."+propMod.get().key()+" DESC " : "") +
+                        (propMod.map(prop -> "ORDER BY n." + prop.key() + " DESC ").orElse("")) +
                         "LIMIT 100",
                     vertex.typename()));
 //            } else {
@@ -163,7 +163,7 @@ public class DigredVertexPanel extends Panel implements ViewUpdater {
                 String.format(
                     "MATCH (tail:%s)-[n:%s]->(head:%s) "+
                     "RETURN tail, n, head "+
-                    (propMod.isPresent() ? "ORDER BY n."+propMod.get().key()+" DESC " : "") +
+                    (propMod.map(prop -> "ORDER BY n." + prop.key() + " DESC ").orElse("")) +
                     "LIMIT 100",
                 edge.tail().typename(),
                 edge.typename(),
