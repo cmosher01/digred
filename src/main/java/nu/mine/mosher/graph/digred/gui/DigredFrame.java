@@ -45,6 +45,8 @@ class DigredFrame extends Frame {
         setSize(1920,1080);
         setLocationRelativeTo(CENTER_ON_SCREEN);
 
+        // TODO add menu items to allow user to connect and disconnect to the database
+        this.datastore.connect(DataStore.NEO, "neo4j", "admin"/*"neo4j"*/);
 
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             LOG.info("Application shutdown detected; running shutdown hook...");
