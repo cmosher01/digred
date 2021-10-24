@@ -4,6 +4,9 @@ plugins {
     id 'org.beryx.jlink' version '2.22.2'
     id 'com.coditory.manifest' version '0.1.8'
     id 'antlr'
+
+    // TODO: remove this once it's released into the application plugin:
+    id 'org.javamodularity.moduleplugin' version '1.8.10' apply false
 }
 
 def inc(module) {
@@ -84,5 +87,11 @@ sourceSets {
         java {
             srcDir "${buildDir.absolutePath}/generated/sources/grammar/antlr/main"
         }
+    }
+}
+
+task showClasspath  {
+    doLast {
+        buildscript.configurations.classpath.each { println it.name }
     }
 }
