@@ -10,7 +10,7 @@ import java.util.*;
 public class DataStore {
     private static final Logger LOG = LoggerFactory.getLogger(DataStore.class);
 
-    private static final URI NEO = URI.create("neo4j://localhost:7687");
+    public static final URI NEO = URI.create("neo4j://localhost:7687");
 
     private Driver database;
 

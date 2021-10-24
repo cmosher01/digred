@@ -1,0 +1,114 @@
+<!doctype html>
+<html>
+<head>
+</head>
+<body>
+<div>
+    <h1>User actions</h1>
+
+    <h2>initial open schema</h2>
+    <ul>
+        <li><em>exception</em>: if schema is invalid display error and abort</li>
+        <li>populate type dropdown (will remain static throughout operation) (in same order as schema file)
+        <li><em>exception</em>: if there are no entites defined in the schema warn user?
+        <li>select first item in type dropdown
+        <li>populate list with lastest entities (of current type in dropdown)
+        <li>if the list is not empty
+            <ul>
+                <li>select first item</li>
+                <li>(causing a read of that entity into right-hand panel)</li>
+            </ul>
+        </li>
+        <li>else
+            <ul>
+                <li>clear right-hand panel</li>
+            </ul>
+        </li>
+        <li>end if</li>
+    </ul>
+
+    <h2>select different type from dropdown</h2>
+    <ul>
+        <li>(the newly selected type is displayed in dropdown)</li>
+        <li>populate list with lastest entities (of newly selected type in dropdown)</li>
+        <li>if the resulting list is not empty
+            <ul>
+                <li>select first item in the list</li>
+                <li>(causing a read of that entity into right-hand panel)</li>
+            </ul>
+        </li>
+        <li>else
+            <ul>
+                <li>clear right-hand panel</li>
+            </ul>
+        </li>
+        <li>end if</li>
+    </ul>
+
+    <h2>select entity from list</h2>
+    <ul>
+        <li>read selected entity into right-hand panel</li>
+    </ul>
+
+    <h2>New</h2>
+    <ul>
+        <li>(only available if a NODE is currently selected in the type dropdown, not a RELATIONSHIP)</li>
+        <li><b>create</b> new untitled node and save it to database</li>
+        <li>(type dropdown is correctly set already)</li>
+        <li>populate entity list around new entity and select it (causing re-read entity into right-hand panel)</li>
+    </ul>
+
+    <h2>Save</h2>
+    <ul>
+        <li><b>update</b> entity in database (affect changed properties only)</li>
+        <li>(type dropdown is correctly set already)</li>
+        <li>populate entity list around new entity and select it (causing re-read entity into right-hand panel)</li>
+    </ul>
+
+    <h2>Delete</h2>
+    <ul>
+        <li>display warning dialog and allow user to cancel, otherwise...</li>
+        <li><b>delete</b> entity from database</li>
+        <li>(type dropdown is correctly set already)</li>
+        <li>populate entity list around former entity</li>
+        <li>if the resulting list is not empty
+            <ul>
+                <li>select item modified just after the deleted item (or if that's too hard, just select the first item in the list)</li>
+                <li>(causing a read of that entity into right-hand panel)</li>
+            </ul>
+        </li>
+        <li>else
+            <ul>
+                <li>clear right-hand panel</li>
+            </ul>
+        </li>
+        <li>end if</li>
+    </ul>
+
+    <h2>select link from links area</h2>
+    <ul>
+        <li>select target type in dropdown</li>
+        <li>populate entity list around selected relationship</li>
+        <li>select it</li>
+        <li>(causing re-read entity into right-hand panel)</li>
+    </ul>
+
+    <h2>Add link</h2>
+    <ul>
+        <li>display "choose entity" popup for user to select the other end of the relationship</li>
+        <li><b>create</b> new relationship in database</li>
+        <li>re-read current entity into right-hand panel</li>
+    </ul>
+
+
+
+    <h1>Notes</h1>
+    <ul>
+        <li><img src="notes-p1.png"></li>
+        <li><img src="notes-p2.png"></li>
+        <li><img src="notes-p3.png"></li>
+        <li><img src="notes-p4.png"></li>
+    </ul>
+</div>
+</body>
+</html>
