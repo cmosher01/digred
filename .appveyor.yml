@@ -59,5 +59,4 @@ deploy:
     secure: TjyyWBvqvk2/j05cBmpMpWsBslEdpJV2JOWy/5Uwr7IP1zKVMx/x97deqVskxx6L
   artifact: /.*file/
   on:
-    branch: main
     APPVEYOR_REPO_TAG: true
