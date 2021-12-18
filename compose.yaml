@@ -1,0 +1,20 @@
+---
+version: '3'
+
+volumes:
+  db: # this stores the neo4j database
+  log: # this stores the neo4j log files
+
+services:
+
+  neo4j:
+    image: neo4j
+    volumes:
+      - 'db:/data'
+      - 'log:/logs'
+    ports:
+      - '7474:7474'
+      - '7687:7687'
+    environment:
+      # username/password for default neo4j and graph-data-web user:
+      NEO4J_AUTH: 'neo4j/demo'

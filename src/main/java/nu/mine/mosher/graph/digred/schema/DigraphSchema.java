@@ -7,7 +7,7 @@ public class DigraphSchema {
     private final List<Entity> e;
 
     public DigraphSchema(final List<Entity> e) {
-        this.e = List.copyOf(e);
+        this.e = e;
     }
 
     public List<Entity> e() {

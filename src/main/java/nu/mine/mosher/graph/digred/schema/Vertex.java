@@ -10,7 +10,7 @@ public class Vertex implements Entity {
 
     public Vertex(String label, List<Prop> props) {
         this.label = label;
-        this.props = List.copyOf(props);
+        this.props = props;
     }
 
     public String label() {
