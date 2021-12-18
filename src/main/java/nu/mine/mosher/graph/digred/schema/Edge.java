@@ -4,13 +4,35 @@ import java.io.PrintWriter;
 import java.util.*;
 
 // (tail)-[:type{props}]->(head)
-public record Edge (
-    String type,
-    List<Prop> props,
-    Vertex tail,
-    Vertex head
-)
-implements Entity {
+public class Edge implements Entity {
+    private final String type;
+    private final List<Prop> props;
+    private final Vertex tail;
+    private final Vertex head;
+
+    public Edge(String type, List<Prop> props, Vertex tail, Vertex head) {
+        this.type = type;
+        this.props = props;
+        this.tail = tail;
+        this.head = head;
+    }
+
+    public String type() {
+        return this.type;
+    }
+
+    public List<Prop> props() {
+        return this.props;
+    }
+
+    public Vertex tail() {
+        return this.tail;
+    }
+
+    public Vertex head() {
+        return this.head;
+    }
+
     @Override
     public boolean common() {
         return false;
@@ -42,9 +64,10 @@ implements Entity {
 
     @Override
     public boolean equals(Object object) {
-        if (!(object instanceof Edge that)) {
+        if (!(object instanceof Edge)) {
             return false;
         }
+        final Edge that = (Edge)object;
         return
             type().equals(that.type()) &&
             tail().equals(that.tail()) &&

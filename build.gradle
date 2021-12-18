@@ -1,19 +1,15 @@
 plugins {
     id 'application'
-    id 'org.openjfx.javafxplugin' version '0.0.9'
-    id 'org.beryx.jlink' version '2.22.2'
-    id 'com.coditory.manifest' version '0.1.8'
+    id 'org.openjfx.javafxplugin' version '0.0.10'
+    id 'org.beryx.jlink' version '2.24.4'
+    id 'com.coditory.manifest' version '0.1.14'
     id 'antlr'
 
     // TODO: remove this once it's released into the application plugin:
     id 'org.javamodularity.moduleplugin' version '1.8.10' apply false
 }
 
-def inc(module) {
-    apply from: "${projectDir}/gradle/${module}.gradle"
-}
-
-inc('version')
+version = '1.0.1'
 
 group = 'nu.mine.mosher.graph'
 
@@ -24,10 +20,22 @@ java {
 
 tasks.withType(JavaCompile) {
     options.compilerArgs << '-Xlint:deprecation'
-    options.compilerArgs << '--enable-preview'
 }
 
-inc('dependencies')
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation group: 'nu.mine.mosher.io', name: 'log-files', version: 'latest.integration'
+    implementation group: 'org.slf4j', name: 'jcl-over-slf4j', version: 'latest.integration'
+    implementation group: 'org.slf4j', name: 'log4j-over-slf4j', version: 'latest.integration'
+    implementation group: 'org.slf4j', name: 'jul-to-slf4j', version: 'latest.integration'
+    implementation group: 'org.slf4j', name: 'slf4j-api', version: 'latest.integration'
+    implementation group: 'ch.qos.logback', name: 'logback-classic', version: 'latest.release'
+    antlr group: 'org.antlr', name: 'antlr4', version: 'latest.release'
+    implementation group: 'org.neo4j.driver', name: 'neo4j-java-driver', version: 'latest.release'
+}
 
 application {
     mainModule.set 'nu.mine.mosher.graph.digred'
@@ -37,6 +45,7 @@ application {
 ext.antlrPackage = 'nu.mine.mosher.graph.digred.schema'
 
 jar {
+    //noinspection GroovyAssignabilityCheck
     manifest {
         attributes(
             'Specification-Version': manifest.attributes.get('Implementation-Version'),
@@ -49,6 +58,7 @@ def os = org.gradle.internal.os.OperatingSystem.current()
 println "detected OS: ${os}"
 
 jlink {
+    //noinspection GroovyAssignabilityCheck
     mergedModule {
         additive = true
         requires 'org.slf4j'
@@ -68,9 +78,6 @@ jlink {
         }
         installerOptions += [ '--verbose' ]
     }
-    launcher {
-        jvmArgs += '--enable-preview'
-    }
 }
 
 assemble {
@@ -87,11 +94,5 @@ sourceSets {
         java {
             srcDir "${buildDir.absolutePath}/generated/sources/grammar/antlr/main"
         }
-    }
-}
-
-task showClasspath  {
-    doLast {
-        buildscript.configurations.classpath.each { println it.name }
     }
 }

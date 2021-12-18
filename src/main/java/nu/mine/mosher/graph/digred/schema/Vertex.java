@@ -4,11 +4,23 @@ import java.io.PrintWriter;
 import java.util.*;
 
 // (:label{props})
-public record Vertex (
-    String label,
-    List<Prop> props
-)
-implements Entity {
+public class Vertex implements Entity {
+    private final String label;
+    private final List<Prop> props;
+
+    public Vertex(String label, List<Prop> props) {
+        this.label = label;
+        this.props = List.copyOf(props);
+    }
+
+    public String label() {
+        return this.label;
+    }
+
+    public List<Prop> props() {
+        return this.props;
+    }
+
     @Override
     public boolean common() {
         return DigraphSchema.common(label());
@@ -36,9 +48,10 @@ implements Entity {
 
     @Override
     public boolean equals(final Object object) {
-        if (!(object instanceof Vertex that)) {
+        if (!(object instanceof Vertex)) {
             return false;
         }
+        final Vertex that = (Vertex)object;
         return label().equals(that.label());
     }
 

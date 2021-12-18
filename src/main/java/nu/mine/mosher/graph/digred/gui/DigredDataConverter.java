@@ -7,12 +7,12 @@ import org.neo4j.driver.internal.types.TypeConstructor;
 import org.neo4j.driver.internal.value.NullValue;
 import org.neo4j.driver.types.*;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.slf4j.*;
 
 import java.awt.*;
 import java.time.*;
 import java.time.format.DateTimeFormatter;
-import java.time.temporal.*;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 
 // In Neo4j, property values cannot be NULL; rather, the property simply wouldn't exist.
@@ -330,7 +330,8 @@ public class DigredDataConverter {
         // get the text from the component (but checkbox will be boolean instead)
         final String s;
         final boolean f;
-        if (cmp instanceof TextComponent cmpText) {
+        if (cmp instanceof TextComponent) {
+            final TextComponent cmpText = (TextComponent)cmp;
             s = cmpText.getText().trim();
             f = false;
         } else {

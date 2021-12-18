@@ -3,9 +3,17 @@ package nu.mine.mosher.graph.digred.schema;
 import java.io.PrintWriter;
 import java.util.*;
 
-public record DigraphSchema (
-    List<Entity> e
-) {
+public class DigraphSchema {
+    private final List<Entity> e;
+
+    public DigraphSchema(final List<Entity> e) {
+        this.e = List.copyOf(e);
+    }
+
+    public List<Entity> e() {
+        return this.e;
+    }
+
     private static final String DIGRED_COMMON = "_DIGRED_COMMON";
 
     public static boolean common(final String label) {

@@ -5,7 +5,7 @@ import org.slf4j.Logger;
 import org.slf4j.*;
 
 import java.net.URI;
-import java.util.*;
+import java.util.Objects;
 
 public class DataStore {
     private static final Logger LOG = LoggerFactory.getLogger(DataStore.class);
