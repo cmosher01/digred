@@ -1,10 +1,11 @@
 package nu.mine.mosher.graph.digred.gui;
 
+import nu.mine.mosher.graph.digred.datastore.DataStore;
 import nu.mine.mosher.graph.digred.schema.Entity;
 import nu.mine.mosher.graph.digred.schema.*;
 import org.neo4j.driver.*;
-import org.neo4j.driver.internal.types.TypeConstructor;
-import org.neo4j.driver.internal.value.NullValue;
+//import org.neo4j.driver.internal.types.TypeConstructor;
+//import org.neo4j.driver.internal.value.NullValue;
 import org.neo4j.driver.types.*;
 import org.slf4j.Logger;
 import org.slf4j.*;
@@ -71,31 +72,6 @@ import java.util.*;
 public class DigredDataConverter {
     private final static Logger LOG = LoggerFactory.getLogger(DigredDataConverter.class);
 
-    // TODO are these datatype maps useful at all?
-    private static final Map<DataType, TypeConstructor> mapDataTypes = Map.of(
-        DataType.INTEGER, TypeConstructor.INTEGER,
-        DataType.FLOAT, TypeConstructor.FLOAT,
-        DataType.STRING, TypeConstructor.STRING,
-        DataType.BOOLEAN, TypeConstructor.BOOLEAN,
-        DataType.DATE, TypeConstructor.DATE,
-        DataType.TIME, TypeConstructor.TIME,
-        DataType.DATETIME, TypeConstructor.DATE_TIME,
-        DataType.TEXT, TypeConstructor.STRING,
-        DataType.UUID, TypeConstructor.STRING
-    );
-
-    private static final Map<DataType, Class<?>> mapDataTypes2 = Map.of(
-        DataType.INTEGER, Long.class,
-        DataType.FLOAT, Double.class,
-        DataType.STRING, String.class,
-        DataType.BOOLEAN, Boolean.class,
-        DataType.DATE, LocalDate.class,
-        DataType.TIME, OffsetTime.class,
-        DataType.DATETIME, ZonedDateTime.class,
-        DataType.TEXT, String.class,
-        DataType.UUID, UUID.class
-    );
-
     public static ArrayList<String> digredCypherProps(final Entity e) {
         final var cyProps = new ArrayList<String>();
         e.props().forEach(prop -> {
@@ -118,25 +94,26 @@ public class DigredDataConverter {
         if (Objects.isNull(value)) {
             return "";
         }
-        if (TypeConstructor.NULL.covers(value)) {
+
+        if (value.hasType(DataStore.DataTypes.NEO_NULL)) {
             return "";
         }
-        if (TypeConstructor.INTEGER.covers(value)) {
+        if (value.hasType(DataStore.DataTypes.NEO_INTEGER)) {
             return Long.toString(value.asLong(), 10);
         }
-        if (TypeConstructor.FLOAT.covers(value)) {
+        if (value.hasType(DataStore.DataTypes.NEO_FLOAT)) {
             return Double.toString(value.asDouble());
         }
-        if (TypeConstructor.DATE.covers(value)) {
+        if (value.hasType(DataStore.DataTypes.NEO_DATE)) {
             return value.asLocalDate().toString();
         }
-        if (TypeConstructor.TIME.covers(value)) {
+        if (value.hasType(DataStore.DataTypes.NEO_TIME)) {
             return value.asOffsetTime().toString();
         }
-        if (TypeConstructor.DATE_TIME.covers(value)) {
+        if (value.hasType(DataStore.DataTypes.NEO_DATETIME)) {
             return value.asZonedDateTime().toString();
         }
-        if (TypeConstructor.STRING.covers(value)) {
+        if (value.hasType(DataStore.DataTypes.NEO_STRING)) {
             return value.asString();
         }
         return "[cannot convert value of type "+value.type().name()+" for display]";
@@ -258,7 +235,7 @@ public class DigredDataConverter {
     public static String nameOrBlank(final org.neo4j.driver.types.Entity nodeOrRel, final Entity defEntity) {
         final var defPropName = defEntity.propOf(DataType._DIGRED_NAME);
         if (defPropName.isPresent()) {
-            final var name = DigredDataConverter.asGoodString(nodeOrRel.get(defPropName.get().key()));
+            final var name = asGoodString(nodeOrRel.get(defPropName.get().key()));
             if (name.isPresent()) {
                 return name.get();
             }
@@ -274,7 +251,7 @@ public class DigredDataConverter {
         final var defPropName = defEntity.propOf(DataType._DIGRED_MODIFIED);
         if (defPropName.isPresent()) {
             final var dtMod = nodeOrRel.get(defPropName.get().key());
-            if (!dtMod.equals(NullValue.NULL)) {
+            if (!dtMod.equals(Values.NULL)) {
                 return dtMod.asZonedDateTime().truncatedTo(ChronoUnit.SECONDS).format(DateTimeFormatter.ISO_DATE_TIME);
             }
         }
@@ -283,7 +260,7 @@ public class DigredDataConverter {
     }
 
     public static Optional<String> asGoodString(final Value v) {
-        if (Objects.nonNull(v) && !v.isNull() && TypeConstructor.STRING.covers(v) && !v.asString().isBlank()) {
+        if (Objects.nonNull(v) && !v.isNull() && v.hasType(DataStore.DataTypes.NEO_STRING) && !v.asString().isBlank()) {
             return Optional.of(v.asString());
         }
         return Optional.empty();
@@ -330,8 +307,7 @@ public class DigredDataConverter {
         // get the text from the component (but checkbox will be boolean instead)
         final String s;
         final boolean f;
-        if (cmp instanceof TextComponent) {
-            final TextComponent cmpText = (TextComponent)cmp;
+        if (cmp instanceof final TextComponent cmpText) {
             s = cmpText.getText().trim();
             f = false;
         } else {
@@ -341,9 +317,13 @@ public class DigredDataConverter {
 
         // handle empty (or blank) text field as a special case, null, which means to delete the property from the entity
         if (Objects.nonNull(s) && s.isEmpty()) {
-            return NullValue.NULL;
+            return Values.NULL;
         }
-        if (Objects.isNull(s) && prop.type() != DataType.BOOLEAN) {
+
+        if (Objects.isNull(s)) {
+            if (prop.type() == DataType.BOOLEAN) {
+                return Values.value(false);
+            }
             return null;
         }
 
@@ -361,14 +341,14 @@ public class DigredDataConverter {
 
     private static boolean canConvert(final Value value) {
         return
-            TypeConstructor.STRING.covers(value) ||
-            TypeConstructor.INTEGER.covers(value) ||
-            TypeConstructor.FLOAT.covers(value) ||
-            TypeConstructor.BOOLEAN.covers(value) ||
-            TypeConstructor.DATE.covers(value) ||
-            TypeConstructor.TIME.covers(value) ||
-            TypeConstructor.DATE_TIME.covers(value) ||
-            TypeConstructor.NULL.covers(value); // TODO will NULL ever be relevant here?
+            value.hasType(DataStore.DataTypes.NEO_STRING) ||
+            value.hasType(DataStore.DataTypes.NEO_INTEGER) ||
+            value.hasType(DataStore.DataTypes.NEO_FLOAT) ||
+            value.hasType(DataStore.DataTypes.NEO_BOOLEAN) ||
+            value.hasType(DataStore.DataTypes.NEO_DATE) ||
+            value.hasType(DataStore.DataTypes.NEO_TIME) ||
+            value.hasType(DataStore.DataTypes.NEO_DATETIME) ||
+            value.hasType(DataStore.DataTypes.NEO_NULL);
     }
 
     private static final Set<DataType> setReadOnly = Set.of(

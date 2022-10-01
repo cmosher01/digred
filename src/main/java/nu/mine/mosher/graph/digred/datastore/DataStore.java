@@ -1,10 +1,12 @@
 package nu.mine.mosher.graph.digred.datastore;
 
 import org.neo4j.driver.*;
+import org.neo4j.driver.types.*;
 import org.slf4j.Logger;
 import org.slf4j.*;
 
 import java.net.URI;
+import java.time.*;
 import java.util.Objects;
 
 public class DataStore {
@@ -13,6 +15,17 @@ public class DataStore {
     public static final URI NEO = URI.create("neo4j://localhost:7687");
 
     private Driver database;
+
+    public static class DataTypes {
+        public static final Type NEO_NULL = Values.NULL.type();
+        public static final Type NEO_INTEGER = Values.value(Integer.MAX_VALUE).type();
+        public static final Type NEO_FLOAT = Values.value(Float.MAX_VALUE).type();
+        public static final Type NEO_DATE = Values.value(LocalDate.now()).type();
+        public static final Type NEO_TIME = Values.value(OffsetTime.now()).type();
+        public static final Type NEO_DATETIME = Values.value(ZonedDateTime.now()).type();
+        public static final Type NEO_STRING = Values.value("").type();
+        public static final Type NEO_BOOLEAN = Values.value(true).type();
+    }
 
     public void connect(final URI uri, final String username, final String password) {
         disconnect();
@@ -62,5 +75,9 @@ public class DataStore {
 
     public static String passwordDefault() {
         return "";
+    }
+
+    public TypeSystem types() {
+        return this.database.defaultTypeSystem();
     }
 }

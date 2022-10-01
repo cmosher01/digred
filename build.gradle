@@ -1,12 +1,9 @@
 plugins {
     id 'application'
-    id 'org.openjfx.javafxplugin' version '0.0.10'
-    id 'org.beryx.jlink' version '2.24.4'
-    id 'com.coditory.manifest' version '0.1.14'
+    id 'org.openjfx.javafxplugin' version '0.0.13'
+    id 'org.beryx.jlink' version '2.25.0'
+    id 'com.coditory.manifest' version '0.2.1'
     id 'antlr'
-
-    // TODO: remove this once it's released into the application plugin:
-    id 'org.javamodularity.moduleplugin' version '1.8.10' apply false
 }
 
 version = '1.0.1'
@@ -14,16 +11,17 @@ version = '1.0.1'
 group = 'nu.mine.mosher.graph'
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_15
-    modularity.inferModulePath.set true
-}
-
-tasks.withType(JavaCompile) {
-    options.compilerArgs << '-Xlint:deprecation'
+    toolchain {
+        languageVersion = JavaLanguageVersion.of 17
+    }
+    modularity.inferModulePath = true
 }
 
 repositories {
     mavenCentral()
+    maven {
+        url = uri('https://public:\u0067hp_fya6Kseu3XOBMg2icbg7f1LP6ZFYjj35v4Zj@maven.pkg.github.com/cmosher01/*')
+    }
 }
 
 dependencies {
@@ -38,14 +36,13 @@ dependencies {
 }
 
 application {
-    mainModule.set 'nu.mine.mosher.graph.digred'
-    mainClass.set 'nu.mine.mosher.graph.digred.Digred'
+    mainModule = 'nu.mine.mosher.graph.digred'
+    mainClass = 'nu.mine.mosher.graph.digred.Digred'
 }
 
 ext.antlrPackage = 'nu.mine.mosher.graph.digred.schema'
 
 jar {
-    //noinspection GroovyAssignabilityCheck
     manifest {
         attributes(
             'Specification-Version': manifest.attributes.get('Implementation-Version'),
@@ -58,11 +55,11 @@ def os = org.gradle.internal.os.OperatingSystem.current()
 println "detected OS: ${os}"
 
 jlink {
-    //noinspection GroovyAssignabilityCheck
     mergedModule {
         additive = true
         requires 'org.slf4j'
         excludeProvides servicePattern: 'org.neo4j.driver.internal.*'
+        excludeProvides servicePattern: 'reactor.blockhound.*'
     }
     jpackage {
         if (os.windows) {

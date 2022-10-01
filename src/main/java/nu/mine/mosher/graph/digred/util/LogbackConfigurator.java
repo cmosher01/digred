@@ -28,7 +28,7 @@ public class LogbackConfigurator extends ContextAwareBase implements Configurato
     private static String file = "";
 
     @Override
-    public void configure(final LoggerContext ctx) {
+    public ExecutionStatus configure(final LoggerContext ctx) {
         addInfo("Logback configurator:     "+LogbackConfigurator.class.getCanonicalName());
         addInfo("application configurator: "+getClass().getCanonicalName());
         addInfo("application:              "+getClass().getEnclosingClass().getCanonicalName());
@@ -46,6 +46,8 @@ public class LogbackConfigurator extends ContextAwareBase implements Configurato
         StatusPrinter.print(ctx);
         System.out.flush();
         System.err.flush();
+
+        return ExecutionStatus.INVOKE_NEXT_IF_ANY;
     }
 
     public static String getFilePath() {
