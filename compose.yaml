@@ -1,20 +1,29 @@
 ---
-version: '3'
+version: "3.8"
 
 volumes:
-  db: # this stores the neo4j database
-  log: # this stores the neo4j log files
+  "db": # neo4j database
+  "log": # neo4j log files
 
 services:
-
-  neo4j:
-    image: neo4j
+  "neo4j":
+    image: "neo4j"
     volumes:
-      - 'db:/data'
-      - 'log:/logs'
+      - type: "volume"
+        source: "db"
+        target: "/data"
+      - type: "volume"
+        source: "log"
+        target: "/logs"
     ports:
-      - '7474:7474'
-      - '7687:7687'
+      - published: 7474
+        target: 7474
+      - published: 7687
+        target: 7687
     environment:
       # username/password for default neo4j and graph-data-web user:
-      NEO4J_AUTH: 'neo4j/demo'
+      "NEO4J_AUTH": "neo4j/demo"
+      "NEO4J_apoc_export_file_enabled": "true"
+      "NEO4J_apoc_import_file_enabled": "true"
+      "NEO4J_apoc_import_file_use__neo4j__config": "true"
+      "NEO4JLABS_PLUGINS": '["apoc"]'

@@ -4,7 +4,7 @@ module nu.mine.mosher.graph.digred {
     exports nu.mine.mosher.graph.digred;
     exports nu.mine.mosher.graph.digred.util;
     provides ch.qos.logback.classic.spi.Configurator with Digred.LogConfig;
-    requires log.files;
+//    requires log.files;
     requires org.slf4j;
     requires ch.qos.logback.classic;
     requires ch.qos.logback.core;

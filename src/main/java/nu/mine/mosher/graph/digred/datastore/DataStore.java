@@ -18,8 +18,8 @@ public class DataStore {
 
     public static class DataTypes {
         public static final Type NEO_NULL = Values.NULL.type();
-        public static final Type NEO_INTEGER = Values.value(Integer.MAX_VALUE).type();
-        public static final Type NEO_FLOAT = Values.value(Float.MAX_VALUE).type();
+        public static final Type NEO_INTEGER = Values.value(Long.MAX_VALUE).type();
+        public static final Type NEO_FLOAT = Values.value(Double.MAX_VALUE).type();
         public static final Type NEO_DATE = Values.value(LocalDate.now()).type();
         public static final Type NEO_TIME = Values.value(OffsetTime.now()).type();
         public static final Type NEO_DATETIME = Values.value(ZonedDateTime.now()).type();
