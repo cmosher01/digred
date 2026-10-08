@@ -51,19 +51,21 @@ jar {
 def os = org.gradle.internal.os.OperatingSystem.current()
 println "detected OS: ${os}"
 
-jpackage {
-    if (os.windows) {
-        installerOptions += [
-            '--win-dir-chooser',
-            '--win-menu',
-            '--win-shortcut',
-            '--verbose'
-        ]
-    } else if (os.linux) {
-        installerOptions += [
-            '--linux-shortcut',
-            '--verbose'
-        ]
+runtime {
+    jpackage {
+        if (os.windows) {
+            installerOptions += [
+                '--win-dir-chooser',
+                '--win-menu',
+                '--win-shortcut',
+                '--verbose'
+            ]
+        } else if (os.linux) {
+            installerOptions += [
+                '--linux-shortcut',
+                '--verbose'
+            ]
+        }
     }
 }
 
