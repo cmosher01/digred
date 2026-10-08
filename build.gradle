@@ -1,13 +1,12 @@
 plugins {
     id 'application'
     id 'org.openjfx.javafxplugin' version '0.1.0'
-    id 'org.beryx.jlink' version '2.25.0'
+    id 'org.beryx.runtime' version '2.0.1'
     id 'com.coditory.manifest' version '1.1.0'
     id 'antlr'
-    id 'org.gradlex.extra-java-module-info' version '1.8'
 }
 
-version = '1.0.3'
+version = '1.0.4'
 
 group = 'nu.mine.mosher.graph'
 
@@ -15,11 +14,6 @@ java {
     toolchain {
         languageVersion = JavaLanguageVersion.of 21
     }
-    modularity.inferModulePath = true
-}
-
-extraJavaModuleInfo {
-    deriveAutomaticModuleNamesFromFileNames = true
 }
 
 repositories {
@@ -45,8 +39,6 @@ application {
     mainClass = 'nu.mine.mosher.graph.digred.Digred'
 }
 
-ext.antlrPackage = 'nu.mine.mosher.graph.digred.schema'
-
 jar {
     manifest {
         attributes(
@@ -59,26 +51,19 @@ jar {
 def os = org.gradle.internal.os.OperatingSystem.current()
 println "detected OS: ${os}"
 
-jlink {
-    mergedModule {
-        additive = true
-        requires 'org.slf4j'
-        excludeProvides servicePattern: 'org.neo4j.driver.internal.*'
-        excludeProvides servicePattern: 'reactor.blockhound.*'
-    }
-    jpackage {
-        if (os.windows) {
-            installerOptions += [
-                '--win-dir-chooser',
-                '--win-menu',
-                '--win-shortcut'
-            ]
-        } else if (os.linux) {
-            installerOptions += [
-                '--linux-shortcut'
-            ]
-        }
-        installerOptions += [ '--verbose' ]
+jpackage {
+    if (os.windows) {
+        installerOptions += [
+            '--win-dir-chooser',
+            '--win-menu',
+            '--win-shortcut',
+            '--verbose'
+        ]
+    } else if (os.linux) {
+        installerOptions += [
+            '--linux-shortcut',
+            '--verbose'
+        ]
     }
 }
 
@@ -87,14 +72,15 @@ assemble {
 }
 
 generateGrammarSource {
-    arguments += ['-long-messages', '-package', antlrPackage]
-    outputDirectory = new File("${project.buildDir}/generated/sources/grammar/antlr/main")
+    packageName = 'nu.mine.mosher.graph.digred.schema'
+    arguments += ['-long-messages']
+    outputDirectory = layout.buildDirectory.dir("generated/sources/grammar/antlr/main").get().asFile
 }
 
 sourceSets {
     main {
         java {
-            srcDir "${buildDir.absolutePath}/generated/sources/grammar/antlr/main"
+            srcDir layout.buildDirectory.dir("generated/sources/grammar/antlr/main").get().asFile
         }
     }
 }
