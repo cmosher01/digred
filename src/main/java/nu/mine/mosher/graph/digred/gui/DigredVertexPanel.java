@@ -1,3 +1,20 @@
+/*
+ *     Copyright 2020, 2021, 2026, Christopher Alan Mosher, New York, New York, USA, <cmosher01@gmail.com>.
+ *
+ *     This program is free software: you can redistribute it and/or modify
+ *     it under the terms of the GNU General Public License as published by
+ *     the Free Software Foundation, either version 3 of the License, or
+ *     (at your option) any later version.
+ *
+ *     This program is distributed in the hope that it will be useful,
+ *     but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *     GNU General Public License for more details.
+ *
+ *     You should have received a copy of the GNU General Public License
+ *     along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package nu.mine.mosher.graph.digred.gui;
 
 import nu.mine.mosher.graph.digred.datastore.DataStore;
@@ -94,7 +111,7 @@ public class DigredVertexPanel extends Panel implements ViewUpdater {
     private void selectedEntity(final ActionEvent e) {
         Tracer.trace("SELECT ENTITY: "+e.paramString());
         final var record = this.listResults.get(this.listboxResults.getSelectedIndex());
-        final var id = record.get("n").asEntity().id();
+        final var id = record.get("n").asEntity().elementId();
         this.ident = this.ident.with(id);
         this.updater.updateViewFromModel(ident);
     }
@@ -107,17 +124,17 @@ public class DigredVertexPanel extends Panel implements ViewUpdater {
             final var cyProps = DigredDataConverter.digredCypherProps(entity);
 
             final var query = new Query(String.format(
-                "CREATE (n:%s { %s }) RETURN ID(n) as id",
+                "CREATE (n:%s { %s }) RETURN elementId(n)",
                 entity.typename(),
                 String.join(",", cyProps)));
 
             final Record rec;
             try (final var session = datastore.session()) {
                 Tracer.trace(query.toString());
-                rec = session.writeTransaction(tx -> tx.run(query).single());
+                rec = session.executeWrite(tx -> tx.run(query).single());
             }
 
-            updateViewFromModel(this.ident.with(rec.get("id").asLong()));
+            updateViewFromModel(this.ident.with(rec.get("pk").asString()));
         }
     }
 
@@ -148,7 +165,7 @@ public class DigredVertexPanel extends Panel implements ViewUpdater {
             query = new Query(
                     String.format(
                         "MATCH (n:%s) " +
-                        "RETURN n, ID(n) AS id " +
+                        "RETURN n, elementId(n) AS id " +
                         (propMod.map(prop -> "ORDER BY n." + prop.key() + " DESC ").orElse("")) +
                         "LIMIT 100",
                     vertex.typename()));
@@ -173,13 +190,13 @@ public class DigredVertexPanel extends Panel implements ViewUpdater {
         final java.util.List<Record> rs;
         try (final var session = datastore.session()) {
             Tracer.trace(query.toString());
-            rs = session.readTransaction(tx -> tx.run(query).list());
+            rs = session.executeRead(tx -> tx.run(query).list());
             Tracer.trace("records found: "+rs.size());
         }
 
         this.listResults = new ArrayList<>();
         this.listboxResults.removeAll();
-        long idFirst = -1;
+        String idFirst = "";
         int preselect = -1;
         for (final var r : rs) {
             this.listResults.add(r);
@@ -192,12 +209,12 @@ public class DigredVertexPanel extends Panel implements ViewUpdater {
             }
             this.listboxResults.add(name);
 
-            final var id = r.get("n").asEntity().id();
-            if (idFirst < 0) {
+            final var id = r.get("n").asEntity().elementId();
+            if (idFirst.isBlank()) {
                 idFirst = id;
             }
             if (this.ident.id().isPresent()) {
-                if (id == this.ident.id().get()) {
+                if (id.equals(this.ident.id().get())) {
                     preselect = this.listResults.size() - 1;
                 }
             }

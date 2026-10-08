@@ -1,3 +1,20 @@
+/*
+ *     Copyright 2020, 2021, 2026, Christopher Alan Mosher, New York, New York, USA, <cmosher01@gmail.com>.
+ *
+ *     This program is free software: you can redistribute it and/or modify
+ *     it under the terms of the GNU General Public License as published by
+ *     the Free Software Foundation, either version 3 of the License, or
+ *     (at your option) any later version.
+ *
+ *     This program is distributed in the hope that it will be useful,
+ *     but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *     GNU General Public License for more details.
+ *
+ *     You should have received a copy of the GNU General Public License
+ *     along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package nu.mine.mosher.graph.digred.gui;
 
 import nu.mine.mosher.graph.digred.datastore.DataStore;
@@ -83,7 +100,7 @@ public class DigredDataConverter {
 
     private static Optional<String> newValueOf(final Prop prop) {
         return Optional.ofNullable(switch (prop.type()) {
-            case _DIGRED_PK -> "apoc.create.uuid()";
+            case _DIGRED_PK -> "randomUUID()";
             case _DIGRED_VERSION -> "1";
             case _DIGRED_CREATED, _DIGRED_MODIFIED -> "datetime.realtime()";
             default -> null;
@@ -123,7 +140,7 @@ public class DigredDataConverter {
         final var defType = defTypeOf(node, model);
         var name = nameOrBlank(node, defType);
         if (name.isBlank()) {
-            name = displayEntityWithID("", defType, node.id());
+            name = displayEntityWithID("", defType, node.elementId());
             if (withMod) {
                 final var mod = modOrBlank(node, defType);
                 if (!mod.isBlank()) {
@@ -149,7 +166,7 @@ public class DigredDataConverter {
             mod = mod + ": ";
         }
 
-        name = displayEntityWithID("", defType, rel.id());
+        name = displayEntityWithID("", defType, rel.elementId());
         return mod+displayTail+" - "+name+" -> "+displayHead;
     }
 
@@ -160,7 +177,7 @@ public class DigredDataConverter {
     public static String displayOutgoingRel(final Relationship rel, final Node tail, final Node head, final DigredModel model) {
         final var defType = defTypeOf(rel, tail, head, model);
         final var name = nameOrBlank(rel, defType);
-        final var relWithID = displayEntityWithID("", defType, rel.id());
+        final var relWithID = displayEntityWithID("", defType, rel.elementId());
         final var headWithID = displayNode(head, model, false);
         final var defTypeThis = displayThisNodeType(defTypeOf(tail, model));
         return String.format("%s - %s -> %s", defTypeThis, name.isBlank() ? relWithID : name, headWithID);
@@ -169,15 +186,15 @@ public class DigredDataConverter {
     public static String displayIncomingRel(final Relationship rel, final Node tail, final Node head, final DigredModel model) {
         final var defType = defTypeOf(rel, tail, head, model);
         final var name = nameOrBlank(rel, defType);
-        final var relWithID = displayEntityWithID("", defType, rel.id());
+        final var relWithID = displayEntityWithID("", defType, rel.elementId());
         final var tailWithID = displayNode(tail, model, false);
         final var defTypeThis = displayThisNodeType(defTypeOf(head, model));
         return String.format("%s - %s -> %s", tailWithID, name.isBlank() ? relWithID : name, defTypeThis);
     }
 
-    public static String displayEntityWithID(final String varname, final Entity entity, final long id) {
+    public static String displayEntityWithID(final String varname, final Entity entity, final String id) {
         return String.format(
-            "%s%s:%s{ID:%d}%s",
+            "%s%s:%s{ID:%s}%s",
                 entity.vertex() ? "(" : "[",
                 varname,
                 entity.typename(),

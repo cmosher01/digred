@@ -1,6 +1,4 @@
 ---
-version: "3.8"
-
 volumes:
   "db": # neo4j database
   "log": # neo4j log files
@@ -22,7 +20,7 @@ services:
         target: 7687
     environment:
       # username/password for default neo4j and graph-data-web user:
-      "NEO4J_AUTH": "neo4j/demo"
+      "NEO4J_AUTH": "neo4j/MarryCavalierLevitateGigahertz"
       "NEO4J_apoc_export_file_enabled": "true"
       "NEO4J_apoc_import_file_enabled": "true"
       "NEO4J_apoc_import_file_use__neo4j__config": "true"

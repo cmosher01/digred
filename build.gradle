@@ -1,20 +1,25 @@
 plugins {
     id 'application'
-    id 'org.openjfx.javafxplugin' version '0.0.13'
+    id 'org.openjfx.javafxplugin' version '0.1.0'
     id 'org.beryx.jlink' version '2.25.0'
-    id 'com.coditory.manifest' version '0.2.1'
+    id 'com.coditory.manifest' version '1.1.0'
     id 'antlr'
+    id 'org.gradlex.extra-java-module-info' version '1.8'
 }
 
-version = '1.0.2'
+version = '1.0.3'
 
 group = 'nu.mine.mosher.graph'
 
 java {
     toolchain {
-        languageVersion = JavaLanguageVersion.of 17
+        languageVersion = JavaLanguageVersion.of 21
     }
     modularity.inferModulePath = true
+}
+
+extraJavaModuleInfo {
+    deriveAutomaticModuleNamesFromFileNames = true
 }
 
 repositories {
@@ -25,14 +30,14 @@ repositories {
 }
 
 dependencies {
-    implementation group: 'nu.mine.mosher.io', name: 'log-files', version: 'latest.integration'
-    implementation group: 'org.slf4j', name: 'jcl-over-slf4j', version: 'latest.integration'
-    implementation group: 'org.slf4j', name: 'log4j-over-slf4j', version: 'latest.integration'
-    implementation group: 'org.slf4j', name: 'jul-to-slf4j', version: 'latest.integration'
-    implementation group: 'org.slf4j', name: 'slf4j-api', version: 'latest.integration'
-    implementation group: 'ch.qos.logback', name: 'logback-classic', version: 'latest.release'
-    antlr group: 'org.antlr', name: 'antlr4', version: 'latest.release'
-    implementation group: 'org.neo4j.driver', name: 'neo4j-java-driver', version: 'latest.release'
+    implementation 'nu.mine.mosher.io:log-files:latest.release'
+    implementation 'org.slf4j:jcl-over-slf4j:latest.release'
+    implementation 'org.slf4j:log4j-over-slf4j:latest.release'
+    implementation 'org.slf4j:jul-to-slf4j:latest.release'
+    implementation 'org.slf4j:slf4j-api:latest.release'
+    implementation 'ch.qos.logback:logback-classic:latest.release'
+    antlr 'org.antlr:antlr4:latest.release'
+    implementation 'org.neo4j.driver:neo4j-java-driver:latest.release'
 }
 
 application {

@@ -1,3 +1,20 @@
+/*
+ *     Copyright 2020, 2021, 2026, Christopher Alan Mosher, New York, New York, USA, <cmosher01@gmail.com>.
+ *
+ *     This program is free software: you can redistribute it and/or modify
+ *     it under the terms of the GNU General Public License as published by
+ *     the Free Software Foundation, either version 3 of the License, or
+ *     (at your option) any later version.
+ *
+ *     This program is distributed in the hope that it will be useful,
+ *     but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *     GNU General Public License for more details.
+ *
+ *     You should have received a copy of the GNU General Public License
+ *     along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package nu.mine.mosher.graph.digred.gui;
 
 import nu.mine.mosher.graph.digred.datastore.DataStore;
@@ -14,7 +31,7 @@ import static java.awt.event.KeyEvent.*;
 
 @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
 public class DigredChoosePopup extends Dialog {
-    public static Optional<Long> run(final Frame owner, final DataStore dataStore, final DigredModel model, final Entity vertexChoose, final boolean incoming, final Edge e) {
+    public static Optional<String> run(final Frame owner, final DataStore dataStore, final DigredModel model, final Entity vertexChoose, final boolean incoming, final Edge e) {
         final var popup = new DigredChoosePopup(owner, dataStore, model, vertexChoose, incoming, e);
         popup.init();
         popup.queryEntities();
@@ -29,7 +46,7 @@ public class DigredChoosePopup extends Dialog {
     private List listboxResults;
     private java.util.List<Record> listResults;
 
-    private Optional<Long> id = Optional.empty();
+    private Optional<String> id = Optional.empty();
 
     private DigredChoosePopup(final Frame owner, final DataStore dataStore, final DigredModel model, final Entity vertexChoose, boolean incoming, Edge e) {
         super(owner, incoming ? DigredDataConverter.displayIncomingType(e) : DigredDataConverter.displayOutgoingType(e), true);
@@ -96,7 +113,7 @@ public class DigredChoosePopup extends Dialog {
         final int i = this.listboxResults.getSelectedIndex();
         if (0 <= i) {
             final var rec = this.listResults.get(i);
-            this.id = Optional.of(rec.get("n").asNode().id());
+            this.id = Optional.of(rec.get("n").asNode().elementId());
         }
         done(e);
     }
@@ -123,7 +140,7 @@ public class DigredChoosePopup extends Dialog {
 
         final java.util.List<Record> rs;
         try (final var session = datastore.session()) {
-            rs = session.readTransaction(tx -> tx.run(query).list());
+            rs = session.executeRead(tx -> tx.run(query).list());
         }
 
         this.listResults = new ArrayList<>();

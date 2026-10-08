@@ -1,3 +1,20 @@
+/*
+ *     Copyright 2020, 2021, 2026, Christopher Alan Mosher, New York, New York, USA, <cmosher01@gmail.com>.
+ *
+ *     This program is free software: you can redistribute it and/or modify
+ *     it under the terms of the GNU General Public License as published by
+ *     the Free Software Foundation, either version 3 of the License, or
+ *     (at your option) any later version.
+ *
+ *     This program is distributed in the hope that it will be useful,
+ *     but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *     GNU General Public License for more details.
+ *
+ *     You should have received a copy of the GNU General Public License
+ *     along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package nu.mine.mosher.graph.digred.gui;
 
 import nu.mine.mosher.graph.digred.datastore.DataStore;
@@ -96,7 +113,7 @@ public class DigredLinksPanel extends Container {
 
     private void pressedAdd(final ActionEvent x, final Edge e, final boolean incoming) {
         final var vertexTarget = incoming ? e.tail() : e.head();
-        final Optional<Long> id = DigredChoosePopup.run(this.owner, this.datastore, this.model, vertexTarget, incoming, e);
+        final Optional<String> id = DigredChoosePopup.run(this.owner, this.datastore, this.model, vertexTarget, incoming, e);
         if (id.isPresent()) {
             Tracer.trace("ADD: "+x.paramString());
             createEdge(e, vertexTarget, id.get(), incoming);
@@ -105,9 +122,9 @@ public class DigredLinksPanel extends Container {
         }
     }
 
-    private void createEdge(final Edge e, final Vertex typeEntityThat, final long idEntityThat, final boolean incoming) {
+    private void createEdge(final Edge e, final Vertex typeEntityThat, final String idEntityThat, final boolean incoming) {
         final var typeEntity = this.ident.type();
-        final long idEntity = this.ident.id().get();
+        final String idEntity = this.ident.id().get();
 
         final var cyProps = DigredDataConverter.digredCypherProps(e);
 
@@ -118,9 +135,9 @@ public class DigredLinksPanel extends Container {
         final var query = new Query(
             String.format(
                 "MATCH (tail:%s), (head:%s) " +
-                "WHERE ID(tail) = $idTail AND ID(head) = $idHead " +
+                "WHERE elementId(tail) = $idTail AND elementId(head) = $idHead " +
                 "CREATE (tail)-[r:%s { %s }]->(head) " +
-                "RETURN ID(r) as id",
+                "RETURN elementId(r) as id",
                 incoming ? typeEntityThat.typename() : typeEntity.typename(),
                 incoming ? typeEntity.typename() : typeEntityThat.typename(),
                 e.typename(),
@@ -130,9 +147,9 @@ public class DigredLinksPanel extends Container {
         final Record rec;
         try (final var session = datastore.session()) {
             Tracer.trace(query.toString());
-            rec = session.writeTransaction(tx -> tx.run(query).single());
+            rec = session.executeWrite(tx -> tx.run(query).single());
         }
-        final var idNew = rec.get("id").asLong();
+        final var idNew = rec.get("id").asString();
 
         this.updater.updateViewFromModel(this.ident.with(idNew));
     }
@@ -143,12 +160,12 @@ public class DigredLinksPanel extends Container {
 
         {
             final Query query = new Query(
-                String.format("MATCH (me:%s)-[r]->(n) WHERE ID(me) = $id RETURN n, r, me", this.ident.type().typename()),
+                String.format("MATCH (me:%s)-[r]->(n) WHERE elementId(me) = $id RETURN n, r, me", this.ident.type().typename()),
                 Map.of("id", this.ident.id().get()));
             final java.util.List<Record> rs;
             try (final var session = this.datastore.session()) {
                 Tracer.trace(query.toString());
-                rs = session.readTransaction(tx -> tx.run(query).list());
+                rs = session.executeRead(tx -> tx.run(query).list());
                 Tracer.trace("records found: "+rs.size());
             }
             rs.forEach(r -> {
@@ -161,7 +178,7 @@ public class DigredLinksPanel extends Container {
                 final var tail = this.ident.type().typename();
                 final var head = node.labels().iterator().next();
                 final var type = this.model.schema.of(rel.type(), tail, head);
-                final var link = new DigredEntityIdent(type, rel.id());
+                final var link = new DigredEntityIdent(type, rel.elementId());
                 this.links.add(link);
 
                 this.listboxLinks.add(DigredDataConverter.displayOutgoingRel(rel, me, node, this.model));
@@ -169,12 +186,12 @@ public class DigredLinksPanel extends Container {
         }
         {
             final Query query = new Query(
-                String.format("MATCH (me:%s)<-[r]-(n) WHERE ID(me) = $id RETURN n, r, me", this.ident.type().typename()),
+                String.format("MATCH (me:%s)<-[r]-(n) WHERE elementId(me) = $id RETURN n, r, me", this.ident.type().typename()),
                 Map.of("id", this.ident.id().get()));
             final java.util.List<Record> rs;
             try (final var session = this.datastore.session()) {
                 Tracer.trace(query.toString());
-                rs = session.readTransaction(tx -> tx.run(query).list());
+                rs = session.executeRead(tx -> tx.run(query).list());
                 Tracer.trace("records found: "+rs.size());
             }
             rs.forEach(r -> {
@@ -187,7 +204,7 @@ public class DigredLinksPanel extends Container {
                 final var tail = node.labels().iterator().next();
                 final var head = this.ident.type().typename();
                 final var type = this.model.schema.of(rel.type(), tail, head);
-                final var link = new DigredEntityIdent(type, rel.id());
+                final var link = new DigredEntityIdent(type, rel.elementId());
                 this.links.add(link);
 
                 this.listboxLinks.add(DigredDataConverter.displayIncomingRel(rel, node, me, this.model));

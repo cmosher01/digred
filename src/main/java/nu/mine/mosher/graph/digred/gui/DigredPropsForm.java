@@ -1,3 +1,20 @@
+/*
+ *     Copyright 2020, 2021, 2026, Christopher Alan Mosher, New York, New York, USA, <cmosher01@gmail.com>.
+ *
+ *     This program is free software: you can redistribute it and/or modify
+ *     it under the terms of the GNU General Public License as published by
+ *     the Free Software Foundation, either version 3 of the License, or
+ *     (at your option) any later version.
+ *
+ *     This program is distributed in the hope that it will be useful,
+ *     but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *     GNU General Public License for more details.
+ *
+ *     You should have received a copy of the GNU General Public License
+ *     along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package nu.mine.mosher.graph.digred.gui;
 
 import nu.mine.mosher.graph.digred.datastore.DataStore;
@@ -86,12 +103,12 @@ public class DigredPropsForm extends Container {
                 stail = DigredDataConverter.displayNode(rec.get("tail").asNode(), this.model, false);
             }
             labelTail.setLabel(stail);
-            labelTail.addActionListener(event -> selectLink(event, vertexTail, tail.id()));
+            labelTail.addActionListener(event -> selectLink(event, vertexTail, tail.elementId()));
             p.add(labelTail);
 
             final var labelNode = new Label();
             labelNode.setAlignment(Label.CENTER);
-            labelNode.setText(DigredDataConverter.displayEntityWithID("this", e, node.id()));
+            labelNode.setText(DigredDataConverter.displayEntityWithID("this", e, node.elementId()));
             p.add(labelNode);
 
             final var head = rec.get("head").asNode();
@@ -111,7 +128,7 @@ public class DigredPropsForm extends Container {
                 shead = DigredDataConverter.displayNode(rec.get("head").asNode(), this.model, false);
             }
             labelHead.setLabel(shead);
-            labelHead.addActionListener(event -> selectLink(event, vertexHead, head.id()));
+            labelHead.addActionListener(event -> selectLink(event, vertexHead, head.elementId()));
             p.add(labelHead);
 
             lay.weightx = 1.0D;
@@ -125,7 +142,7 @@ public class DigredPropsForm extends Container {
 
             final var labelNode = new Label();
             labelNode.setAlignment(Label.CENTER);
-            labelNode.setText(DigredDataConverter.displayEntityWithID("this", typeEntity, node.id()));
+            labelNode.setText(DigredDataConverter.displayEntityWithID("this", typeEntity, node.elementId()));
             layout.setConstraints(labelNode, lay);
             add(labelNode);
         }
@@ -188,21 +205,21 @@ public class DigredPropsForm extends Container {
         add(b);
     }
 
-    private void selectLink(final ActionEvent e, final Vertex vertex, final long id) {
+    private void selectLink(final ActionEvent e, final Vertex vertex, final String id) {
         Tracer.trace("SELECT LINK: "+e.paramString());
         this.updater.updateViewFromModel(new DigredEntityIdent(vertex, id));
     }
 
-    private Record query(final Entity typeEntity, final Long idEntity) {
+    private Record query(final Entity typeEntity, final String idEntity) {
         final Query query;
         if (typeEntity.vertex()) {
-            query = new Query(String.format("MATCH (n:%s) WHERE ID(n) = $id RETURN n",
+            query = new Query(String.format("MATCH (n:%s) WHERE elementId(n) = $id RETURN n",
                 typeEntity.typename()),
                 Map.of("id", idEntity));
         } else {
             query = new Query(String.format(
-                "MATCH (tail)-[n:%s]->(head) WHERE ID(n) = $id " +
-                "RETURN n, tail, ID(tail) AS idTail, head, ID(head) AS idHead",
+                "MATCH (tail)-[n:%s]->(head) WHERE elementId(n) = $id " +
+                "RETURN n, tail, elementId(tail) AS idTail, head, elementId(head) AS idHead",
                 typeEntity.typename()),
                 Map.of("id", idEntity));
         }
@@ -210,7 +227,7 @@ public class DigredPropsForm extends Container {
         final Record rs;
         try (final var session = this.datastore.session()) {
             Tracer.trace(query.toString());
-            rs = session.readTransaction(tx -> tx.run(query).single());
+            rs = session.executeRead(tx -> tx.run(query).single());
             Tracer.trace("records found: "+rs.size());
         }
 
@@ -224,15 +241,15 @@ public class DigredPropsForm extends Container {
             final var query = new Query(
                 String.format(
                     entity.vertex()
-                    ? "MATCH (n:%s) WHERE ID(n) = $id DETACH DELETE n"
-                    : "MATCH ()-[r:%s]-() WHERE ID(r) = $id DELETE r",
+                    ? "MATCH (n:%s) WHERE elementId(n) = $id DETACH DELETE n"
+                    : "MATCH ()-[r:%s]-() WHERE elementId(r) = $id DELETE r",
                     entity.typename()),
                 Map.of(
                     "id", this.ident.id().get()));
 
             try (final var session = datastore.session()) {
                 Tracer.trace(query.toString());
-                session.writeTransaction(tx -> tx.run(query).consume());
+                session.executeWrite(tx -> tx.run(query).consume());
             }
 
             this.updater.updateViewFromModel(new DigredEntityIdent(this.ident.type()/* TODO modified date? */));
@@ -296,8 +313,8 @@ public class DigredPropsForm extends Container {
             final var query = new Query(
                 String.format(
                     entity.vertex()
-                    ? "MATCH (n:%s) WHERE ID(n) = $id SET n += $map %s %s %s"
-                    : "MATCH ()-[n:%s]-() WHERE ID(n) = $id SET n += $map %s %s %s",
+                    ? "MATCH (n:%s) WHERE elementId(n) = $id SET n += $map %s %s %s"
+                    : "MATCH ()-[n:%s]-() WHERE elementId(n) = $id SET n += $map %s %s %s",
                     entity.typename(),
                     propVersion.isPresent() ? ", n."+propVersion.get().key()+" = n."+propVersion.get().key()+"+1" : "",
                     propModified.isPresent() ? ", n."+propModified.get().key()+" = datetime.realtime()" : "",
@@ -308,7 +325,7 @@ public class DigredPropsForm extends Container {
 
             try (final var session = datastore.session()) {
                 Tracer.trace(query.toString());
-                session.writeTransaction(tx -> tx.run(query).consume());
+                session.executeWrite(tx -> tx.run(query).consume());
             }
         }
 
